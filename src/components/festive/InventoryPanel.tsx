@@ -1,15 +1,924 @@
 import { useState } from "react";
-import { categories, items, type Category } from "./data";
+
+import {
+  ExternalLink,
+  LoaderCircle,
+  Sparkles,
+} from "lucide-react";
+
+import {
+  categories,
+  items,
+  type Category,
+  type Item,
+} from "./data";
+
+import { useFestive } from "./FestiveContext";
+
+/*
+ * FILTER OPTIONS
+ */
+
+const styles = [
+  "All Styles",
+  "Royal Traditional",
+  "Modern Festive",
+  "Minimal Elegant",
+  "Elegant Festive",
+  "Designer",
+  "Fusion",
+  "Cute Traditional",
+];
+
+const colors = [
+  "All Colours",
+  "Gold",
+  "Gold & Green",
+  "Classic Gold",
+  "Green",
+  "Red",
+  "Blue",
+  "Black",
+  "Yellow",
+  "Pink",
+  "Blush Pink",
+  "Beige",
+  "Pastel",
+  "Bright Colours",
+];
+
+type ProductFilterMeta = {
+  styles: string[];
+  colors: string[];
+};
+
+const productFilterMeta: Record<
+  string,
+  ProductFilterMeta
+> = {
+  /*
+   * WOMEN
+   */
+
+  "banarasi-lehenga": {
+    styles: [
+      "Royal Traditional",
+      "Elegant Festive",
+      "Designer",
+    ],
+
+    colors: [
+      "Gold",
+      "Gold & Green",
+      "Classic Gold",
+      "Red",
+    ],
+  },
+
+  "yellow-bollywood-lehenga": {
+    styles: [
+      "Royal Traditional",
+      "Designer",
+    ],
+
+    colors: [
+      "Yellow",
+    ],
+  },
+
+  "blush-embroidered-lehenga": {
+    styles: [
+      "Royal Traditional",
+      "Designer",
+    ],
+
+    colors: [
+      "Blush Pink",
+      "Beige",
+      "Gold",
+    ],
+  },
+
+  "pink-salwar-kameez": {
+    styles: [
+      "Elegant Festive",
+      "Designer",
+    ],
+
+    colors: [
+      "Pink",
+    ],
+  },
+
+  "rani-pink-paithani-saree": {
+    styles: [
+      "Royal Traditional",
+    ],
+
+    colors: [
+      "Pink",
+      "Gold",
+    ],
+  },
+
+  "kanjivaram-soft-silk-saree": {
+    styles: [
+      "Royal Traditional",
+    ],
+
+    colors: [],
+  },
+
+  /*
+   * MEN
+   */
+
+  "sonisha-kurta-pajama": {
+    styles: [
+      "Royal Traditional",
+    ],
+
+    colors: [],
+  },
+
+  "kisah-indowestern-sherwani": {
+    styles: [
+      "Royal Traditional",
+      "Designer",
+      "Fusion",
+    ],
+
+    colors: [],
+  },
+
+  "pro-ethic-indo-western": {
+    styles: [
+      "Modern Festive",
+      "Designer",
+      "Fusion",
+    ],
+
+    colors: [],
+  },
+
+  /*
+   * KIDS
+   */
+
+  "kids-red-gold-lehenga": {
+    styles: [
+      "Cute Traditional",
+      "Royal Traditional",
+    ],
+
+    colors: [
+      "Red",
+      "Gold",
+      "Bright Colours",
+    ],
+  },
+
+  /*
+   * TEMP PRODUCTS
+   */
+
+  "2": {
+    styles: [
+      "Royal Traditional",
+      "Elegant Festive",
+    ],
+
+    colors: [
+      "Gold",
+      "Classic Gold",
+      "Red",
+    ],
+  },
+
+  "3": {
+    styles: [
+      "Minimal Elegant",
+      "Elegant Festive",
+    ],
+
+    colors: [
+      "Pastel",
+      "Gold",
+    ],
+  },
+
+  "4": {
+    styles: [
+      "Royal Traditional",
+      "Elegant Festive",
+    ],
+
+    colors: [
+      "Gold",
+      "Classic Gold",
+    ],
+  },
+};
+
+/*
+ * PRICE
+ */
+
+function getNumericPrice(
+  price: string,
+) {
+  if (!price.includes("₹")) {
+    return null;
+  }
+
+  const numeric =
+    price.replace(
+      /[^0-9]/g,
+      "",
+    );
+
+  if (!numeric) {
+    return null;
+  }
+
+  return Number(numeric);
+}
+
+/*
+ * YOUCAM CACHE
+ */
+
+type CachedTryOnResult = {
+  url: string;
+  itemName: string;
+};
+
+const TRY_ON_CACHE_KEY =
+  "festive-ready-ai-vto-cache-v1";
+
+function readTryOnCache(): Record<
+  string,
+  CachedTryOnResult
+> {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return {};
+  }
+
+  try {
+    const saved =
+      window.sessionStorage.getItem(
+        TRY_ON_CACHE_KEY,
+      );
+
+    if (!saved) {
+      return {};
+    }
+
+    return JSON.parse(saved);
+  } catch {
+    return {};
+  }
+}
+
+function getCachedTryOn(
+  cacheKey: string,
+) {
+  const cache =
+    readTryOnCache();
+
+  return (
+    cache[cacheKey] ??
+    null
+  );
+}
+
+function saveCachedTryOn(
+  cacheKey: string,
+  result: CachedTryOnResult,
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+  try {
+    const cache =
+      readTryOnCache();
+
+    cache[cacheKey] =
+      result;
+
+    window.sessionStorage.setItem(
+      TRY_ON_CACHE_KEY,
+      JSON.stringify(cache),
+    );
+  } catch (error) {
+    console.error(
+      "Could not save Try-On cache:",
+      error,
+    );
+  }
+}
+
+/*
+ * INVENTORY PANEL
+ */
 
 export function InventoryPanel() {
-  const [active, setActive] = useState<Category>("Outfits");
+  const [
+    active,
+    setActive,
+  ] =
+    useState<Category>(
+      "Outfits",
+    );
 
-  const visible = items.filter(
-    (i) => i.category === active,
-  );
+  const [
+    tryingOnItemId,
+    setTryingOnItemId,
+  ] = useState<
+    string | null
+  >(null);
+
+  const [
+    tryOnError,
+    setTryOnError,
+  ] = useState<
+    string | null
+  >(null);
+
+  const {
+    activeMember,
+
+    updatePreference,
+
+    standingPhoto,
+
+    setTryOnResult,
+
+    equipItem,
+
+    isItemEquipped,
+  } = useFestive();
+
+  /*
+   * BUDGET
+   */
+
+  const currentBudget =
+    active === "Outfits"
+      ? activeMember.preference
+          ?.outfitBudget
+      : active ===
+          "Jewellery"
+        ? activeMember.preference
+            ?.jewelleryBudget
+        : active ===
+            "Shoes"
+          ? activeMember.preference
+              ?.shoesBudget
+          : activeMember.preference
+              ?.accessoryBudget;
+
+  /*
+   * STYLE
+   */
+
+  const currentStyle =
+    activeMember.preference
+      ?.style &&
+    styles.includes(
+      activeMember.preference.style,
+    )
+      ? activeMember.preference.style
+      : "All Styles";
+
+  /*
+   * COLOUR
+   */
+
+  const currentColor =
+    activeMember.preference
+      ?.color &&
+    colors.includes(
+      activeMember.preference.color,
+    )
+      ? activeMember.preference.color
+      : "All Colours";
+
+  /*
+   * ============================================================
+   * EXACT MEMBER COLLECTION CHECK
+   * ============================================================
+   *
+   * Example:
+   *
+   * Kid female now HAS a kid female product,
+   * so she gets the kids catalogue.
+   *
+   * Kid male currently has no specific kid-male
+   * product, so he temporarily falls back to
+   * male products instead of showing nothing.
+   *
+   * Same fallback applies to teens until we
+   * add teen-specific products.
+   */
+
+  const hasExactMemberOutfits =
+    items.some(
+      (item) => {
+        if (
+          item.category !==
+          "Outfits"
+        ) {
+          return false;
+        }
+
+        if (
+          item.ageGroup !==
+          activeMember.ageGroup
+        ) {
+          return false;
+        }
+
+        const memberGender =
+          activeMember.genderFit;
+
+        if (
+          memberGender !==
+            "female" &&
+          memberGender !==
+            "male"
+        ) {
+          return true;
+        }
+
+        return (
+          !item.genderFit ||
+          item.genderFit ===
+            "unisex" ||
+          item.genderFit ===
+            memberGender
+        );
+      },
+    );
+
+  /*
+   * FILTER PRODUCTS
+   */
+
+  const visible =
+    items.filter(
+      (item) => {
+        /*
+         * CATEGORY
+         */
+
+        if (
+          item.category !==
+          active
+        ) {
+          return false;
+        }
+
+        /*
+         * MEMBER FILTER
+         */
+
+        if (
+          active === "Outfits"
+        ) {
+          const memberGender =
+            activeMember.genderFit;
+
+          /*
+           * GENDER
+           */
+
+          if (
+            (memberGender ===
+              "female" ||
+              memberGender ===
+                "male") &&
+            item.genderFit &&
+            item.genderFit !==
+              "unisex" &&
+            item.genderFit !==
+              memberGender
+          ) {
+            return false;
+          }
+
+          /*
+           * AGE
+           *
+           * Age becomes strict only if
+           * this exact member type has
+           * its own products available.
+           */
+
+          if (
+            hasExactMemberOutfits &&
+            item.ageGroup &&
+            item.ageGroup !==
+              activeMember.ageGroup
+          ) {
+            return false;
+          }
+        }
+
+        /*
+         * BUDGET
+         */
+
+        const itemPrice =
+          getNumericPrice(
+            item.price,
+          );
+
+        if (
+          itemPrice !== null &&
+          currentBudget &&
+          itemPrice >
+            currentBudget
+        ) {
+          return false;
+        }
+
+        const meta =
+          productFilterMeta[
+            item.id
+          ];
+
+        /*
+         * STYLE
+         */
+
+        if (
+          currentStyle !==
+            "All Styles" &&
+          meta &&
+          meta.styles.length >
+            0 &&
+          !meta.styles.includes(
+            currentStyle,
+          )
+        ) {
+          return false;
+        }
+
+        /*
+         * COLOUR
+         *
+         * Unknown product colours
+         * remain visible.
+         */
+
+        if (
+          currentColor !==
+            "All Colours" &&
+          meta &&
+          meta.colors.length >
+            0 &&
+          !meta.colors.includes(
+            currentColor,
+          )
+        ) {
+          return false;
+        }
+
+        return true;
+      },
+    );
+
+  /*
+   * BUDGET CHANGE
+   */
+
+  function handleBudgetChange(
+    value: number,
+  ) {
+    if (
+      !activeMember.preference
+    ) {
+      return;
+    }
+
+    const nextPreference = {
+      ...activeMember.preference,
+    };
+
+    if (
+      active === "Outfits"
+    ) {
+      nextPreference.outfitBudget =
+        value;
+    } else if (
+      active === "Jewellery"
+    ) {
+      nextPreference.jewelleryBudget =
+        value;
+    } else if (
+      active === "Shoes"
+    ) {
+      nextPreference.shoesBudget =
+        value;
+    } else {
+      nextPreference.accessoryBudget =
+        value;
+    }
+
+    updatePreference(
+      nextPreference,
+    );
+  }
+
+  /*
+   * EQUIP
+   */
+
+  function handleEquip(
+    item: Item,
+  ) {
+    equipItem({
+      id: item.id,
+
+      name: item.name,
+
+      slot: item.slot,
+
+      image: item.image,
+
+      price: item.price,
+
+      productUrl:
+        item.productUrl,
+
+      category:
+        item.category,
+    });
+  }
+
+  /*
+   * TRY ON
+   */
+
+  async function handleTryOn(
+    item: Item,
+  ) {
+    setTryOnError(null);
+
+    if (
+      item.category !==
+      "Outfits"
+    ) {
+      setTryOnError(
+        "Virtual Try-On is currently available for outfits.",
+      );
+
+      return;
+    }
+
+    if (!standingPhoto) {
+      setTryOnError(
+        "Upload your standing photo in the Dressing Chamber first.",
+      );
+
+      return;
+    }
+
+    if (!item.tryOnImage) {
+      setTryOnError(
+        "This product does not have a Try-On reference image yet.",
+      );
+
+      return;
+    }
+
+    /*
+     * PHOTO FINGERPRINT
+     */
+
+    const photoFingerprint = [
+      standingPhoto.name,
+      standingPhoto.size,
+      standingPhoto.lastModified,
+      standingPhoto.type,
+    ].join("-");
+
+    const cacheKey = [
+      activeMember.id,
+      photoFingerprint,
+      item.id,
+      item.tryOnImage,
+    ].join("::");
+
+    /*
+     * CACHE FIRST
+     */
+
+    const cachedResult =
+      getCachedTryOn(
+        cacheKey,
+      );
+
+    if (cachedResult) {
+      console.log(
+        "Using saved Try-On result. No new YouCam request.",
+      );
+
+      setTryOnResult(
+        cachedResult,
+      );
+
+      return;
+    }
+
+    /*
+     * CALL YOUCAM
+     */
+
+    setTryingOnItemId(
+      item.id,
+    );
+
+    try {
+      const outfitResponse =
+        await fetch(
+          item.tryOnImage,
+        );
+
+      if (
+        !outfitResponse.ok
+      ) {
+        throw new Error(
+          "Could not load the outfit reference image.",
+        );
+      }
+
+      const outfitBlob =
+        await outfitResponse.blob();
+
+      const extension =
+        outfitBlob.type.includes(
+          "png",
+        )
+          ? "png"
+          : "jpg";
+
+      const outfitFile =
+        new File(
+          [outfitBlob],
+
+          `try-on-${item.id}.${extension}`,
+
+          {
+            type:
+              outfitBlob.type ||
+              "image/jpeg",
+          },
+        );
+
+      const formData =
+        new FormData();
+
+      /*
+       * USER PHOTO
+       */
+
+      formData.append(
+        "person",
+        standingPhoto,
+      );
+
+      /*
+       * PRODUCT IMAGE
+       */
+
+      formData.append(
+        "outfit",
+        outfitFile,
+      );
+
+      console.log(
+        "Starting YouCam Clothes VTO...",
+      );
+
+      console.log(
+        "Person:",
+        activeMember.name,
+      );
+
+      console.log(
+        "Outfit:",
+        item.name,
+      );
+
+      /*
+       * WORKING SERVER ROUTE
+       */
+
+      const response =
+        await fetch(
+          "/api/youcam-tryon",
+          {
+            method: "POST",
+
+            body: formData,
+          },
+        );
+
+      const text =
+        await response.text();
+
+      let payload: {
+        success?: boolean;
+        url?: string;
+        taskId?: string;
+        error?: string;
+      };
+
+      try {
+        payload =
+          JSON.parse(text);
+      } catch {
+        throw new Error(
+          `YouCam server returned invalid data: ${text.slice(
+            0,
+            200,
+          )}`,
+        );
+      }
+
+      if (
+        !response.ok ||
+        !payload.url
+      ) {
+        throw new Error(
+          payload.error ||
+            "YouCam Virtual Try-On failed.",
+        );
+      }
+
+      const result = {
+        url: payload.url,
+
+        itemName:
+          item.name,
+      };
+
+      /*
+       * CACHE RESULT
+       */
+
+      saveCachedTryOn(
+        cacheKey,
+        result,
+      );
+
+      /*
+       * DISPLAY RESULT
+       */
+
+      setTryOnResult(
+        result,
+      );
+
+      console.log(
+        "YouCam Clothes VTO successful and result cached.",
+      );
+    } catch (error) {
+      console.error(
+        "YouCam Try-On error:",
+        error,
+      );
+
+      setTryOnError(
+        error instanceof Error
+          ? error.message
+          : "YouCam Virtual Try-On failed.",
+      );
+    } finally {
+      setTryingOnItemId(
+        null,
+      );
+    }
+  }
+
+  /*
+   * UI
+   */
 
   return (
     <aside className="panel-ornate flex h-[860px] flex-col gap-3 rounded-xl p-4">
+
+      {/* TITLE */}
+
       <div>
         <h2 className="font-display text-sm tracking-[0.22em] text-gold uppercase">
           Diwali Collection
@@ -18,82 +927,393 @@ export function InventoryPanel() {
         <div className="gold-rule mt-2" />
       </div>
 
-      <div className="flex flex-wrap gap-1.5 shrink-0">
-        {categories.map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => setActive(c)}
-            className={`rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase transition-all ${
-              active === c
-                ? "border-gold/70 bg-secondary/70 text-gold"
-                : "border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
-            }`}
-          >
-            {c}
-          </button>
-        ))}
+      {/* ERROR */}
+
+      {tryOnError && (
+        <div className="rounded-lg border border-red-500/40 bg-red-950/35 px-3 py-2 text-[10px] leading-relaxed text-red-200">
+          {tryOnError}
+        </div>
+      )}
+
+      {/* CATEGORIES */}
+
+      <div className="flex shrink-0 flex-wrap gap-1.5">
+        {categories.map(
+          (category) => (
+            <button
+              key={category}
+
+              type="button"
+
+              onClick={() => {
+                setActive(
+                  category,
+                );
+
+                setTryOnError(
+                  null,
+                );
+              }}
+
+              className={`rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase transition-all ${
+                active ===
+                category
+                  ? "border-gold/70 bg-secondary/70 text-gold"
+                  : "border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
+              }`}
+            >
+              {category}
+            </button>
+          ),
+        )}
       </div>
 
-      <ul 
-        className="flex flex-1 flex-col gap-3 overflow-y-auto pr-1"
+      {/* FILTERS */}
+
+      <div className="flex items-center justify-between gap-2 rounded-lg border border-gold/20 bg-background/20 px-2 py-1.5">
+
+        {/* BUDGET */}
+
+        <div className="flex flex-col gap-1">
+
+          <span className="text-[10px] font-medium text-gold">
+            💰 ₹
+            {currentBudget
+              ? Math.round(
+                  currentBudget /
+                    1000,
+                )
+              : 25}
+            K
+          </span>
+
+          <input
+            type="range"
+
+            min="1000"
+
+            max="100000"
+
+            step="1000"
+
+            value={
+              currentBudget ??
+              25000
+            }
+
+            onChange={(event) =>
+              handleBudgetChange(
+                Number(
+                  event.target.value,
+                ),
+              )
+            }
+
+            className="h-1 w-16 accent-yellow-500"
+          />
+        </div>
+
+        {/* STYLE */}
+
+        <select
+          value={
+            currentStyle
+          }
+
+          onChange={(event) => {
+            if (
+              !activeMember.preference
+            ) {
+              return;
+            }
+
+            updatePreference({
+              ...activeMember.preference,
+
+              style:
+                event.target.value,
+            });
+          }}
+
+          className="max-w-[108px] rounded-full border border-gold/30 bg-background px-1.5 py-0.5 text-[9px] text-gold"
+        >
+          {styles.map(
+            (style) => (
+              <option
+                key={style}
+
+                value={style}
+              >
+                {style}
+              </option>
+            ),
+          )}
+        </select>
+
+        {/* COLOUR */}
+
+        <select
+          value={
+            currentColor
+          }
+
+          onChange={(event) => {
+            if (
+              !activeMember.preference
+            ) {
+              return;
+            }
+
+            updatePreference({
+              ...activeMember.preference,
+
+              color:
+                event.target.value,
+            });
+          }}
+
+          className="max-w-[95px] rounded-full border border-gold/30 bg-background px-1.5 py-0.5 text-[9px] text-gold"
+        >
+          {colors.map(
+            (color) => (
+              <option
+                key={color}
+
+                value={color}
+              >
+                {color}
+              </option>
+            ),
+          )}
+        </select>
+      </div>
+
+      {/* PRODUCTS */}
+
+      <ul
+        className="
+          flex flex-1 flex-col gap-3
+          overflow-y-scroll pr-2
+
+          [&::-webkit-scrollbar]:w-2
+
+          [&::-webkit-scrollbar-track]:rounded-full
+          [&::-webkit-scrollbar-track]:bg-[#160b06]
+
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb]:border
+          [&::-webkit-scrollbar-thumb]:border-[#c89b3c]/30
+          [&::-webkit-scrollbar-thumb]:bg-[#75501c]
+
+          hover:[&::-webkit-scrollbar-thumb]:bg-[#a87a28]
+        "
+
         style={{
-          scrollbarWidth: "thin",
-          scrollbarColor: "color-mix(in oklab, var(--gold) 40%, transparent) transparent",
+          scrollbarWidth:
+            "thin",
+
+          scrollbarColor:
+            "#8b6525 #160b06",
         }}
       >
-        {visible.map((item) => (
-          <li
-            key={item.id}
-            className="group rounded-lg border border-border bg-background/40 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/70 hover:shadow-[var(--shadow-glow)]"
-          >
-            <div className="flex gap-3">
-              <img
-                src={item.image}
-                alt={item.name}
-                loading="lazy"
-                width={512}
-                height={512}
-                className="size-16 shrink-0 rounded-md border border-gold/40 object-cover"
-              />
+        {visible.map(
+          (item) => {
+            const generating =
+              tryingOnItemId ===
+              item.id;
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-foreground">
-                  {item.name}
-                </p>
+            const equipped =
+              isItemEquipped(
+                item.id,
+              );
 
-                <p className="text-[10px] tracking-[0.18em] text-accent-foreground/70 uppercase">
-                  {item.rarity}
-                </p>
+            const canTryOn =
+              item.category ===
+                "Outfits" &&
+              Boolean(
+                item.tryOnImage,
+              );
 
-                <p className="mt-1 font-display text-sm text-gold">
-                  {item.price}
-                </p>
-              </div>
-            </div>
+            const isRealProduct =
+              Boolean(
+                item.productUrl,
+              );
 
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                className="flex-1 rounded-md border border-gold/40 px-2 py-1.5 text-[11px] tracking-[0.12em] uppercase transition-colors hover:border-gold hover:text-gold"
+            return (
+              <li
+                key={item.id}
+
+                className={`group rounded-lg border bg-background/40 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/70 hover:shadow-[var(--shadow-glow)] ${
+                  isRealProduct
+                    ? "border-gold/60"
+                    : "border-border"
+                }`}
               >
-                Try On
-              </button>
+                {/* BADGE */}
 
-              <button
-                type="button"
-                className="flex-1 rounded-md px-2 py-1.5 text-[11px] tracking-[0.12em] text-primary-foreground uppercase transition-transform hover:-translate-y-0.5"
-                style={{ background: "var(--gradient-gold)" }}
-              >
-                {item.equipped ? "Equipped" : "Equip"}
-              </button>
-            </div>
-          </li>
-        ))}
+                {isRealProduct && (
+                  <div className="mb-2 inline-flex rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8px] tracking-[0.13em] text-gold uppercase">
+                    Real Product
+                  </div>
+                )}
 
-        {visible.length === 0 && (
-          <li className="rounded-lg border border-dashed border-border px-3 py-8 text-center text-xs text-muted-foreground">
-            No items discovered in this category yet.
+                {/* PRODUCT */}
+
+                <div className="flex gap-3">
+
+                  <img
+                    src={
+                      item.image
+                    }
+
+                    alt={
+                      item.name
+                    }
+
+                    loading="lazy"
+
+                    width={512}
+
+                    height={512}
+
+                    className="size-16 shrink-0 rounded-md border border-gold/40 object-cover"
+                  />
+
+                  <div className="min-w-0 flex-1">
+
+                    <p className="truncate text-sm text-foreground">
+                      {item.name}
+                    </p>
+
+                    <p className="text-[10px] tracking-[0.18em] text-accent-foreground/70 uppercase">
+                      {item.rarity}
+                    </p>
+
+                    <p className="mt-1 font-display text-sm text-gold">
+                      {item.price}
+                    </p>
+
+                  </div>
+                </div>
+
+                {/* ACTIONS */}
+
+                <div className="mt-3 flex gap-2">
+
+                  {/* TRY ON */}
+
+                  <button
+                    type="button"
+
+                    onClick={() =>
+                      void handleTryOn(
+                        item,
+                      )
+                    }
+
+                    disabled={
+                      tryingOnItemId !==
+                        null ||
+                      !canTryOn
+                    }
+
+                    title={
+                      canTryOn
+                        ? "Try this outfit on your uploaded photo"
+                        : "Try-On reference image not added yet"
+                    }
+
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-gold/40 px-2 py-1.5 text-[11px] tracking-[0.12em] uppercase transition-all hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {generating ? (
+                      <>
+                        <LoaderCircle className="size-3.5 animate-spin" />
+
+                        Generating
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-3.5" />
+
+                        Try On
+                      </>
+                    )}
+                  </button>
+
+                  {/* EQUIP */}
+
+                  <button
+                    type="button"
+
+                    disabled={
+                      equipped
+                    }
+
+                    onClick={() =>
+                      handleEquip(
+                        item,
+                      )
+                    }
+
+                    className={`flex-1 rounded-md border px-2 py-1.5 text-[11px] tracking-[0.12em] uppercase transition-all ${
+                      equipped
+                        ? "cursor-default border-gold/50 bg-gold/10 text-gold"
+                        : "border-transparent text-primary-foreground hover:brightness-110"
+                    }`}
+
+                    style={
+                      equipped
+                        ? undefined
+                        : {
+                            background:
+                              "var(--gradient-gold)",
+                          }
+                    }
+                  >
+                    {equipped
+                      ? "Equipped"
+                      : "Equip"}
+                  </button>
+                </div>
+
+                {/* PRODUCT LINK */}
+
+                {item.productUrl && (
+                  <a
+                    href={
+                      item.productUrl
+                    }
+
+                    target="_blank"
+
+                    rel="noopener noreferrer sponsored"
+
+                    className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-gold/30 bg-background/30 px-3 py-2 text-[10px] tracking-[0.12em] text-gold uppercase transition-all hover:border-gold hover:bg-secondary/40"
+                  >
+                    View Product
+
+                    <ExternalLink className="size-3" />
+                  </a>
+                )}
+              </li>
+            );
+          },
+        )}
+
+        {/* EMPTY */}
+
+        {visible.length ===
+          0 && (
+          <li className="rounded-lg border border-dashed border-gold/25 px-3 py-8 text-center">
+
+            <p className="text-xs text-gold">
+              No matching items
+            </p>
+
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Increase your budget or try another style / colour.
+            </p>
+
           </li>
         )}
       </ul>

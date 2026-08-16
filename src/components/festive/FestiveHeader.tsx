@@ -10,7 +10,7 @@ export function FestiveHeader() {
         <div>
           <h1 className="gold-text text-2xl leading-none font-semibold">Festive Ready AI</h1>
           <p className="mt-1 text-xs tracking-wide text-muted-foreground">
-            Build your real-world festive look like you equip an RPG character.
+            Build your real-world festive look like you equip on self.
           </p>
         </div>
       </div>
@@ -26,18 +26,7 @@ export function FestiveHeader() {
           </div>
         </div>
 
-        <div className="min-w-44 rounded-md border border-gold/40 bg-secondary/40 px-3 py-2">
-          <div className="flex items-baseline justify-between gap-3 text-xs">
-            <span className="tracking-[0.18em] text-muted-foreground uppercase">Budget</span>
-            <span className="text-gold">₹27,650 / ₹40,000</span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-background/70">
-            <div
-              className="h-full rounded-full"
-              style={{ width: "69%", background: "var(--gradient-gold)" }}
-            />
-          </div>
-        </div>
+ 
 
         <button
           type="button"

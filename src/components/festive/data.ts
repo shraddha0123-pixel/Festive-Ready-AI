@@ -9,11 +9,38 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import lehenga from "@/assets/item-lehenga.jpg";
 import necklace from "@/assets/item-necklace.jpg";
 import earrings from "@/assets/item-earrings.jpg";
 import juttis from "@/assets/item-juttis.jpg";
 
+/*
+ * WOMEN
+ */
+
+import banarasiLehenga from "@/assets/outfits/banarasi-lehenga.jpg";
+import yellowBollywoodLehenga from "@/assets/outfits/yellow-bollywood-lehenga.jpg";
+import blushEmbroideredLehenga from "@/assets/outfits/blush-embroidered-lehenga.jpg";
+import pinkSalwarKameez from "@/assets/outfits/pink-salwar-kameez.jpg";
+import raniPinkPaithaniSaree from "@/assets/outfits/rani-pink-paithani-saree.jpg";
+import kanjivaramSoftSilkSaree from "@/assets/outfits/kanjivaram-soft-silk-saree.jpg";
+
+/*
+ * MEN
+ */
+
+import sonishaKurtaPajama from "@/assets/outfits/sonisha-kurta-pajama.jpg";
+import kisahIndowesternSherwani from "@/assets/outfits/kisah-indowestern-sherwani.jpg";
+import proEthicIndoWestern from "@/assets/outfits/pro-ethic-indo-western.jpg";
+
+/*
+ * KIDS
+ */
+
+import kidsRedGoldLehenga from "@/assets/outfits/kids-red-gold-lehenga.jpg";
+
+/*
+ * EQUIPMENT
+ */
 
 export type SlotKey =
   | "outfit"
@@ -24,6 +51,15 @@ export type SlotKey =
   | "shoes"
   | "accessory";
 
+export type ProductGenderFit =
+  | "female"
+  | "male"
+  | "unisex";
+
+export type ProductAgeGroup =
+  | "adult"
+  | "teen"
+  | "kid";
 
 export const slots: {
   key: SlotKey;
@@ -35,13 +71,11 @@ export const slots: {
     key: "outfit",
     label: "Outfit",
     icon: Shirt,
-    equipped: "Emerald Zari Lehenga",
   },
   {
     key: "necklace",
     label: "Necklace",
     icon: Gem,
-    equipped: "Kundan Ruby Haar",
   },
   {
     key: "earrings",
@@ -70,6 +104,9 @@ export const slots: {
   },
 ];
 
+/*
+ * CATEGORIES
+ */
 
 export const categories = [
   "Outfits",
@@ -78,102 +115,364 @@ export const categories = [
   "Accessories",
 ] as const;
 
-export type Category = (typeof categories)[number];
+export type Category =
+  (typeof categories)[number];
 
+/*
+ * PRODUCT
+ */
 
 export type Item = {
   id: string;
   name: string;
   price: string;
   rarity: string;
+
   category: Category;
+  slot: SlotKey;
+
   image: string;
+
+  tryOnImage?: string;
+
+  productUrl?: string;
+
+  genderFit?: ProductGenderFit;
+
+  ageGroup?: ProductAgeGroup;
+
   equipped?: boolean;
 };
 
+/*
+ * PRODUCTS
+ */
 
 export const items: Item[] = [
+  /*
+   * ============================================================
+   * WOMEN — ADULT
+   * ============================================================
+   */
+
   {
-    id: "1",
-    name: "Emerald Zari Lehenga",
-    price: "₹18,400",
-    rarity: "Legendary",
+    id: "banarasi-lehenga",
+
+    name: "Banarasi Partywear Lehenga",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
     category: "Outfits",
-    image: lehenga,
-    equipped: true,
-  },
-  {
-    id: "2",
-    name: "Kundan Ruby Haar",
-    price: "₹9,250",
-    rarity: "Epic",
-    category: "Jewellery",
-    image: necklace,
-    equipped: true,
-  },
-  {
-    id: "3",
-    name: "Pearl Jhumka Drops",
-    price: "₹3,600",
-    rarity: "Rare",
-    category: "Jewellery",
-    image: earrings,
-  },
-  {
-    id: "4",
-    name: "Marigold Silk Juttis",
-    price: "₹2,180",
-    rarity: "Rare",
-    category: "Shoes",
-    image: juttis,
+
+    slot: "outfit",
+
+    genderFit: "female",
+
+    ageGroup: "adult",
+
+    image: banarasiLehenga,
+
+    tryOnImage: banarasiLehenga,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0F3XMX7MS?tag=festivereadya-20",
   },
 
   {
-    id: "5",
-    name: "Royal Silk Kurta",
-    price: "₹6,800",
+    id: "yellow-bollywood-lehenga",
+
+    name: "Yellow Bollywood Wedding Lehenga",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "female",
+
+    ageGroup: "adult",
+
+    image: yellowBollywoodLehenga,
+
+    tryOnImage: yellowBollywoodLehenga,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0H4M89C8C?tag=festivereadya-20",
+  },
+
+  {
+    id: "blush-embroidered-lehenga",
+
+    name: "Blush Embroidered Lehenga Choli",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "female",
+
+    ageGroup: "adult",
+
+    image: blushEmbroideredLehenga,
+
+    tryOnImage: blushEmbroideredLehenga,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0GL7PTH8V?tag=festivereadya-20",
+  },
+
+  {
+    id: "pink-salwar-kameez",
+
+    name: "Pink Designer Salwar Kameez",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "female",
+
+    ageGroup: "adult",
+
+    image: pinkSalwarKameez,
+
+    tryOnImage: pinkSalwarKameez,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0C4Z3Q8ZT?tag=festivereadya-20",
+  },
+
+  {
+    id: "rani-pink-paithani-saree",
+
+    name: "Rani Pink Paithani Silk Saree",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "female",
+
+    ageGroup: "adult",
+
+    image: raniPinkPaithaniSaree,
+
+    tryOnImage: raniPinkPaithaniSaree,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0C4TMZPHV?tag=festivereadya-20",
+  },
+
+  {
+    id: "kanjivaram-soft-silk-saree",
+
+    name: "Kanjivaram Soft Silk Saree",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "female",
+
+    ageGroup: "adult",
+
+    image: kanjivaramSoftSilkSaree,
+
+    tryOnImage: kanjivaramSoftSilkSaree,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0D4MFXZBY?tag=festivereadya-20",
+  },
+
+  /*
+   * ============================================================
+   * MEN — ADULT
+   * ============================================================
+   */
+
+  {
+    id: "sonisha-kurta-pajama",
+
+    name: "Sonisha Traditional Kurta Pajama",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "male",
+
+    ageGroup: "adult",
+
+    image: sonishaKurtaPajama,
+
+    tryOnImage: sonishaKurtaPajama,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0B579QNDM?tag=festivereadya-20",
+  },
+
+  {
+    id: "kisah-indowestern-sherwani",
+
+    name: "KISAH Indo-Western Sherwani",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "male",
+
+    ageGroup: "adult",
+
+    image: kisahIndowesternSherwani,
+
+    tryOnImage: kisahIndowesternSherwani,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0CD2HWXQ1?tag=festivereadya-20",
+  },
+
+  {
+    id: "pro-ethic-indo-western",
+
+    name: "Pro Ethic Indo-Western Kurta Set",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "male",
+
+    ageGroup: "adult",
+
+    image: proEthicIndoWestern,
+
+    tryOnImage: proEthicIndoWestern,
+
+    productUrl:
+      "https://www.amazon.com/dp/B0GCNJNY9F?tag=festivereadya-20",
+  },
+
+  /*
+   * ============================================================
+   * KIDS — FEMALE
+   * ============================================================
+   */
+
+  {
+    id: "kids-red-gold-lehenga",
+
+    name: "Red Gold Kids Lehenga Choli",
+
+    price: "See Amazon Price",
+
+    rarity: "Featured",
+
+    category: "Outfits",
+
+    slot: "outfit",
+
+    genderFit: "female",
+
+    ageGroup: "kid",
+
+    image: kidsRedGoldLehenga,
+
+    /*
+     * Intentionally no tryOnImage yet.
+     *
+     * We will enable kid VTO only after
+     * confirming it works safely with YouCam.
+     */
+
+    productUrl:
+      "https://www.amazon.com/dp/B0BPHV9R38?tag=festivereadya-20",
+  },
+
+  /*
+   * ============================================================
+   * TEMP JEWELLERY / SHOES
+   * ============================================================
+   */
+
+  {
+    id: "2",
+
+    name: "Kundan Ruby Haar",
+
+    price: "₹9,250",
+
     rarity: "Epic",
-    category: "Outfits",
-    image: lehenga,
+
+    category: "Jewellery",
+
+    slot: "necklace",
+
+    image: necklace,
   },
+
   {
-    id: "6",
-    name: "Classic Sherwani",
-    price: "₹15,500",
-    rarity: "Legendary",
-    category: "Outfits",
-    image: lehenga,
-  },
-  {
-    id: "7",
-    name: "Royal Banarasi Saree",
-    price: "₹12,900",
-    rarity: "Epic",
-    category: "Outfits",
-    image: lehenga,
-  },
-  {
-    id: "8",
-    name: "Ruby Anarkali Suit",
-    price: "₹8,400",
+    id: "3",
+
+    name: "Pearl Jhumka Drops",
+
+    price: "₹3,600",
+
     rarity: "Rare",
-    category: "Outfits",
-    image: lehenga,
+
+    category: "Jewellery",
+
+    slot: "earrings",
+
+    image: earrings,
   },
+
   {
-    id: "9",
-    name: "Kids Mini Kurta Set",
-    price: "₹3,200",
+    id: "4",
+
+    name: "Marigold Silk Juttis",
+
+    price: "₹2,180",
+
     rarity: "Rare",
-    category: "Outfits",
-    image: lehenga,
-  },
-  {
-    id: "10",
-    name: "Kids Lehenga Choli",
-    price: "₹4,500",
-    rarity: "Rare",
-    category: "Outfits",
-    image: lehenga,
+
+    category: "Shoes",
+
+    slot: "shoes",
+
+    image: juttis,
   },
 ];

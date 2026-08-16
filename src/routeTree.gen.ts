@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiYoucamRemoveBgRouteImport } from './routes/api.youcam-remove-bg'
+import { Route as ApiYoucamTryonRouteImport } from './routes/api.youcam-tryon'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiYoucamRemoveBgRoute = ApiYoucamRemoveBgRouteImport.update({
+  id: '/api/youcam-remove-bg',
+  path: '/api/youcam-remove-bg',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiYoucamTryonRoute = ApiYoucamTryonRouteImport.update({
+  id: '/api/youcam-tryon',
+  path: '/api/youcam-tryon',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/youcam-remove-bg': typeof ApiYoucamRemoveBgRoute
+  '/api/youcam-tryon': typeof ApiYoucamTryonRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/youcam-remove-bg': typeof ApiYoucamRemoveBgRoute
+  '/api/youcam-tryon': typeof ApiYoucamTryonRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/youcam-remove-bg': typeof ApiYoucamRemoveBgRoute
+  '/api/youcam-tryon': typeof ApiYoucamTryonRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/api/youcam-remove-bg' | '/api/youcam-tryon'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/api/youcam-remove-bg' | '/api/youcam-tryon'
+  id: '__root__' | '/' | '/api/youcam-remove-bg' | '/api/youcam-tryon'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiYoucamRemoveBgRoute: typeof ApiYoucamRemoveBgRoute
+  ApiYoucamTryonRoute: typeof ApiYoucamTryonRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/youcam-remove-bg': {
+      id: '/api/youcam-remove-bg'
+      path: '/api/youcam-remove-bg'
+      fullPath: '/api/youcam-remove-bg'
+      preLoaderRoute: typeof ApiYoucamRemoveBgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/youcam-tryon': {
+      id: '/api/youcam-tryon'
+      path: '/api/youcam-tryon'
+      fullPath: '/api/youcam-tryon'
+      preLoaderRoute: typeof ApiYoucamTryonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiYoucamRemoveBgRoute: ApiYoucamRemoveBgRoute,
+  ApiYoucamTryonRoute: ApiYoucamTryonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

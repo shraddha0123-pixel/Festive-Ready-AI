@@ -1,198 +1,126 @@
+import { useFestive } from "./FestiveContext";
 import { useState } from "react";
-import { useFestive } from "@/components/festive/FestiveContext";
 
-
-const colorOptions = [
-  "Gold & Green",
-  "Royal Blue",
-  "Red & Maroon",
-  "Pastel Pink",
-  "White & Silver",
-  "Bright Colours",
+const colors = [
+  "Gold",
+  "Green",
+  "Red",
+  "Blue",
+  "Pastel",
+  "Black",
 ];
 
-
-const styleOptions = [
+const styles = [
   "Royal Traditional",
-  "Elegant Festive",
-  "Modern Fusion",
-  "Minimal Premium",
-  "Cute Traditional",
+  "Modern Festive",
+  "Minimal Elegant",
+  "Designer",
+  "Fusion",
 ];
-
 
 export function StylePreferences() {
+  const {
+    activeMember,
+    updatePreference,
+  } = useFestive();
 
-  const festive = useFestive();
-
-
-  const activeMember =
-    festive.activeMember;
-
-
-  const updatePreference =
-    festive.updatePreference;
-
-
-
-  const existingPreference =
+  const current =
     activeMember.preference ?? {
-      budget: 20000,
-      color: "Gold & Green",
+      outfitBudget: 25000,
+      jewelleryBudget: 10000,
+      shoesBudget: 3000,
+      accessoryBudget: 2000,
+      color: "Gold",
       style: "Royal Traditional",
     };
 
+  const [color, setColor] = useState(
+    current.color,
+  );
+
+  const [style, setStyle] = useState(
+    current.style,
+  );
 
 
-  const [budget, setBudget] =
-    useState(existingPreference.budget);
-
-
-  const [color, setColor] =
-    useState(existingPreference.color);
-
-
-  const [style, setStyle] =
-    useState(existingPreference.style);
-
-
-
-  function savePreferences() {
-
+  const savePreferences = () => {
     updatePreference({
-      budget,
+      ...current,
       color,
       style,
     });
-
-  }
-
+  };
 
 
   return (
-
     <section className="panel-ornate rounded-xl p-4">
 
-      <div className="mb-4">
-
+      <div className="mb-3">
         <p className="font-display text-xs tracking-[0.18em] text-gold uppercase">
           Style Preferences
         </p>
 
-
         <p className="text-[10px] text-muted-foreground">
-          Styling {activeMember.name}
+          Styling for {activeMember.name}
         </p>
-
       </div>
 
 
-
-      <div className="grid gap-3 md:grid-cols-3">
-
+      <div className="space-y-3">
 
         <div>
-
-          <label className="mb-1 block text-[10px] tracking-widest text-gold uppercase">
-            Budget
+          <label className="text-[10px] text-gold uppercase">
+            Preferred Colour
           </label>
 
-
-          <input
-            type="number"
-            value={budget}
-            onChange={(event) =>
-              setBudget(
-                Number(event.target.value),
-              )
-            }
-            className="w-full rounded-md border border-gold/30 bg-background px-3 py-2 text-sm text-foreground"
-          />
-
-        </div>
-
-
-
-
-        <div>
-
-          <label className="mb-1 block text-[10px] tracking-widest text-gold uppercase">
-            Favourite Colour
-          </label>
-
-
-          <select
-            value={color}
-            onChange={(event) =>
-              setColor(event.target.value)
-            }
-            className="w-full rounded-md border border-gold/30 bg-background px-3 py-2 text-sm text-foreground"
-          >
-
-            {colorOptions.map((item) => (
-
-              <option
+          <div className="mt-2 flex flex-wrap gap-2">
+            {colors.map((item) => (
+              <button
                 key={item}
-                value={item}
+                onClick={() => setColor(item)}
+                className={`rounded-md border px-3 py-1 text-xs ${
+                  color === item
+                    ? "border-gold text-gold"
+                    : "border-border"
+                }`}
               >
                 {item}
-              </option>
-
+              </button>
             ))}
-
-          </select>
-
+          </div>
         </div>
 
 
-
-
         <div>
-
-          <label className="mb-1 block text-[10px] tracking-widest text-gold uppercase">
-            Style Vibe
+          <label className="text-[10px] text-gold uppercase">
+            Style
           </label>
-
 
           <select
             value={style}
-            onChange={(event) =>
-              setStyle(event.target.value)
+            onChange={(e) =>
+              setStyle(e.target.value)
             }
-            className="w-full rounded-md border border-gold/30 bg-background px-3 py-2 text-sm text-foreground"
+            className="mt-2 w-full rounded-md border border-gold/30 bg-background px-3 py-2"
           >
-
-            {styleOptions.map((item) => (
-
-              <option
-                key={item}
-                value={item}
-              >
+            {styles.map((item) => (
+              <option key={item}>
                 {item}
               </option>
-
             ))}
-
           </select>
-
         </div>
 
 
+        <button
+          onClick={savePreferences}
+          className="rounded-md bg-gold px-4 py-2 text-sm font-semibold text-background"
+        >
+          Save Style
+        </button>
+
       </div>
 
-
-
-      <button
-        type="button"
-        onClick={savePreferences}
-        className="mt-4 rounded-md bg-gold px-5 py-2 text-sm font-semibold text-background"
-      >
-        Save Style
-      </button>
-
-
     </section>
-
   );
-
 }
