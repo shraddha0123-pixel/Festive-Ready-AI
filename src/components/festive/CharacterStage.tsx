@@ -4,7 +4,6 @@ import {
 } from "react";
 
 import {
-  Gamepad2,
   RotateCw,
   Sparkles,
   Undo2,
@@ -22,6 +21,7 @@ import kidFemale from "@/assets/kid-female.png";
 import kidMale from "@/assets/kid-male.png";
 
 import { Embers } from "./Embers";
+import { FestiveSquadReveal } from "./FestiveSquadReveal";
 import { useFestive } from "./FestiveContext";
 
 export function CharacterStage() {
@@ -37,6 +37,8 @@ export function CharacterStage() {
     setTryOnResult,
 
     equippedItems,
+
+    finalizeCurrentLook,
   } = useFestive();
 
   const [
@@ -299,9 +301,6 @@ export function CharacterStage() {
 
   /*
    * JEWELLERY CHECK
-   *
-   * Jewellery uses multiple RPG slots,
-   * but one jewellery budget.
    */
 
   const hasJewellery =
@@ -340,8 +339,6 @@ export function CharacterStage() {
    * ============================================================
    * FINALIZE MY LOOK
    * ============================================================
-   *
-   * No YouCam call happens here.
    */
 
   function handleFinalize() {
@@ -365,6 +362,13 @@ export function CharacterStage() {
 
       return;
     }
+
+    /*
+     * Save finalized snapshot
+     * for the active family member.
+     */
+
+    finalizeCurrentLook();
 
     setShowFinalLook(true);
   }
@@ -504,6 +508,7 @@ export function CharacterStage() {
                   "transform 250ms ease",
               }}
             >
+
               <img
                 src={
                   displayImage
@@ -555,6 +560,7 @@ export function CharacterStage() {
                       "var(--gradient-gold)",
                   }}
                 >
+
                   <Upload className="size-4" />
 
                   Upload Standing Photo
@@ -702,6 +708,7 @@ export function CharacterStage() {
                 "var(--gradient-gold)",
             }}
           >
+
             <span className="inline-flex items-center gap-2">
 
               <Sparkles className="size-4" />
@@ -709,6 +716,7 @@ export function CharacterStage() {
               Finalize My Look
 
             </span>
+
           </button>
 
           {finalizeError && (
@@ -717,21 +725,9 @@ export function CharacterStage() {
             </div>
           )}
 
-          <button
-            type="button"
+          {/* FESTIVE SQUAD REVEAL */}
 
-            disabled
-
-            className="w-full max-w-md cursor-not-allowed rounded-lg border border-dashed border-gold/35 px-8 py-3 text-xs text-muted-foreground"
-          >
-            <span className="inline-flex items-center gap-2">
-
-              <Gamepad2 className="size-4" />
-
-              Generate My 3D Character
-
-            </span>
-          </button>
+          <FestiveSquadReveal />
 
         </div>
 
@@ -791,11 +787,17 @@ export function CharacterStage() {
                 </h2>
 
                 <p className="mt-2 text-sm text-muted-foreground">
+
                   {activeMember.name}
+
                   {" • "}
+
                   {selectedFestival.emoji}
+
                   {" "}
+
                   {selectedFestival.name}
+
                 </p>
 
               </div>
@@ -821,6 +823,7 @@ export function CharacterStage() {
                     style={{
                       background:
                         "radial-gradient(ellipse, rgba(240,180,50,0.38), transparent 70%)",
+
                       filter:
                         "blur(12px)",
                     }}
@@ -841,9 +844,11 @@ export function CharacterStage() {
                   </div>
 
                   <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/40 bg-background/85 px-4 py-2 text-[9px] tracking-[0.15em] text-gold uppercase backdrop-blur-md">
+
                     {tryOnResult
                       ? "AI Virtual Try-On Look"
                       : "Original Festive Look"}
+
                   </div>
 
                 </div>
@@ -863,15 +868,21 @@ export function CharacterStage() {
                     <div className="mt-2 flex items-center justify-between gap-3">
 
                       <div>
+
                         <p className="font-display text-lg text-gold">
+
                           {selectedFestival.emoji}
+
                           {" "}
+
                           {selectedFestival.name}
+
                         </p>
 
                         <p className="mt-1 text-[10px] text-muted-foreground">
                           {selectedFestival.tagline}
                         </p>
+
                       </div>
 
                       <p className="text-right text-[10px] text-muted-foreground">
@@ -925,12 +936,18 @@ export function CharacterStage() {
                       </p>
 
                       <p className="text-[9px] text-muted-foreground">
+
                         {equippedList.length}
+
                         {" "}
+
                         item
-                        {equippedList.length === 1
+
+                        {equippedList.length ===
+                        1
                           ? ""
                           : "s"}
+
                       </p>
 
                     </div>
@@ -944,6 +961,7 @@ export function CharacterStage() {
                         ]) => (
                           <div
                             key={`${slot}-${item.id}`}
+
                             className="flex items-center gap-3 rounded-lg border border-gold/15 bg-background/30 p-2.5"
                           >
 
@@ -952,9 +970,11 @@ export function CharacterStage() {
                                 src={
                                   item.image
                                 }
+
                                 alt={
                                   item.name
                                 }
+
                                 className="size-12 rounded-md border border-gold/20 object-cover"
                               />
                             ) : (
@@ -976,12 +996,14 @@ export function CharacterStage() {
                               {item.price !==
                                 undefined && (
                                 <p className="mt-0.5 text-[9px] text-muted-foreground">
+
                                   {typeof item.price ===
                                   "number"
                                     ? `₹${item.price.toLocaleString(
                                         "en-IN",
                                       )}`
                                     : item.price}
+
                                 </p>
                               )}
 
@@ -1011,10 +1033,7 @@ export function CharacterStage() {
 
                   </div>
 
-                  {/* =====================================================
-                      EQUIPPED CATEGORY BUDGETS
-                      Only show a category if gear is equipped there.
-                      ===================================================== */}
+                  {/* EQUIPPED CATEGORY BUDGETS */}
 
                   <div className="rounded-xl border border-gold/25 bg-secondary/20 p-4">
 
@@ -1028,19 +1047,24 @@ export function CharacterStage() {
 
                       {equippedItems.outfit && (
                         <div>
+
                           <p className="text-[8px] text-muted-foreground uppercase">
                             Outfit Budget Limit
                           </p>
 
                           <p className="text-xs">
+
                             ₹
+
                             {(
                               preference?.outfitBudget ??
                               0
                             ).toLocaleString(
                               "en-IN",
                             )}
+
                           </p>
+
                         </div>
                       )}
 
@@ -1048,19 +1072,24 @@ export function CharacterStage() {
 
                       {hasJewellery && (
                         <div>
+
                           <p className="text-[8px] text-muted-foreground uppercase">
                             Jewellery Budget Limit
                           </p>
 
                           <p className="text-xs">
+
                             ₹
+
                             {(
                               preference?.jewelleryBudget ??
                               0
                             ).toLocaleString(
                               "en-IN",
                             )}
+
                           </p>
+
                         </div>
                       )}
 
@@ -1068,19 +1097,24 @@ export function CharacterStage() {
 
                       {equippedItems.shoes && (
                         <div>
+
                           <p className="text-[8px] text-muted-foreground uppercase">
                             Shoes Budget Limit
                           </p>
 
                           <p className="text-xs">
+
                             ₹
+
                             {(
                               preference?.shoesBudget ??
                               0
                             ).toLocaleString(
                               "en-IN",
                             )}
+
                           </p>
+
                         </div>
                       )}
 
@@ -1088,19 +1122,24 @@ export function CharacterStage() {
 
                       {equippedItems.accessory && (
                         <div>
+
                           <p className="text-[8px] text-muted-foreground uppercase">
                             Accessory Budget Limit
                           </p>
 
                           <p className="text-xs">
+
                             ₹
+
                             {(
                               preference?.accessoryBudget ??
                               0
                             ).toLocaleString(
                               "en-IN",
                             )}
+
                           </p>
+
                         </div>
                       )}
 

@@ -6,6 +6,10 @@ import {
   type ReactNode,
 } from "react";
 
+/* =========================================================
+   TYPES
+   ========================================================= */
+
 export type AgeGroup =
   | "adult"
   | "teen"
@@ -28,11 +32,11 @@ export type StylePreference = {
 export type PartyMember = {
   id: string;
   name: string;
-  ageGroup?: AgeGroup;
-  genderFit?: GenderFit;
-  isMainProfile?: boolean;
+  ageGroup: AgeGroup;
+  genderFit: GenderFit;
+  isMainProfile: boolean;
   photoUrl?: string;
-  preference?: StylePreference;
+  preference: StylePreference;
 };
 
 export type Festival = {
@@ -48,9 +52,9 @@ export type VirtualTryOnResult = {
   itemName: string;
 };
 
-/*
- * RPG EQUIPMENT
- */
+/* =========================================================
+   EQUIPMENT
+   ========================================================= */
 
 export type EquipmentSlot =
   | "outfit"
@@ -65,15 +69,9 @@ export type EquippedItem = {
   id: string;
   name: string;
   slot: EquipmentSlot;
-
   image?: string;
-
-  price?:
-    | string
-    | number;
-
+  price?: string | number;
   productUrl?: string;
-
   category?: string;
 };
 
@@ -91,9 +89,41 @@ export type EquipmentByMember =
     EquippedItems
   >;
 
-/*
- * FESTIVALS
- */
+/* =========================================================
+   FINALIZED LOOK
+   ========================================================= */
+
+export type FinalizedLook = {
+  memberId: string;
+  memberName: string;
+
+  ageGroup: AgeGroup;
+  genderFit: GenderFit;
+
+  festivalId: string;
+  festivalName: string;
+  festivalEmoji: string;
+
+  preference: StylePreference;
+
+  equippedItems: EquippedItems;
+
+  tryOnResult:
+    | VirtualTryOnResult
+    | null;
+
+  finalizedAt: string;
+};
+
+export type FinalizedLooksByMember =
+  Record<
+    string,
+    FinalizedLook
+  >;
+
+/* =========================================================
+   FESTIVALS
+   ========================================================= */
 
 export const festivals: Festival[] = [
   {
@@ -133,68 +163,49 @@ export const festivals: Festival[] = [
   },
 ];
 
-/*
- * DEFAULT CONTEST PREFERENCES
- *
- * IMPORTANT:
- * Show complete collection by default.
- */
+/* =========================================================
+   DEFAULTS
+   ========================================================= */
 
 const defaultPreference: StylePreference = {
   outfitBudget: 25000,
   jewelleryBudget: 10000,
   shoesBudget: 3000,
   accessoryBudget: 2000,
-
   color: "All Colours",
-
   style: "All Styles",
 };
 
-/*
- * MAIN PROFILE
- *
- * Hackathon demo:
- * My Look = Adult Female
- */
-
 const mainProfile: PartyMember = {
   id: "me",
-
   name: "My Look",
-
   ageGroup: "adult",
-
   genderFit: "female",
-
   isMainProfile: true,
-
-  preference: defaultPreference,
+  preference: {
+    ...defaultPreference,
+  },
 };
 
-/*
- * LOCAL STORAGE
- */
+/* =========================================================
+   STORAGE
+   ========================================================= */
 
 const STORAGE_KEY =
   "festive-ready-ai-demo-state-v1";
 
 type SavedFestiveState = {
   partyMembers?: PartyMember[];
-
   activeMemberId?: string;
-
   selectedFestivalId?: string;
-
   reminders?: string[];
-
-  equipmentByMember?:
-    EquipmentByMember;
+  equipmentByMember?: EquipmentByMember;
+  finalizedLooksByMember?: FinalizedLooksByMember;
 };
 
-/*
- * CONTEXT TYPE
- */
+/* =========================================================
+   CONTEXT TYPE
+   ========================================================= */
 
 type FestiveContextValue = {
   partyMembers: PartyMember[];
@@ -207,30 +218,14 @@ type FestiveContextValue = {
 
   reminders: string[];
 
-  /*
-   * USER PHOTO
-   */
-
   standingPhoto:
     File | null;
-
-  /*
-   * OLD BACKGROUND REMOVAL
-   */
 
   standingPhotoCutoutUrl:
     string | null;
 
-  /*
-   * YOUCAM
-   */
-
   tryOnResult:
     VirtualTryOnResult | null;
-
-  /*
-   * EQUIPMENT
-   */
 
   equipmentByMember:
     EquipmentByMember;
@@ -250,9 +245,17 @@ type FestiveContextValue = {
     itemId: string,
   ) => boolean;
 
-  /*
-   * PARTY
-   */
+  finalizedLooksByMember:
+    FinalizedLooksByMember;
+
+  finalizedLook:
+    FinalizedLook | null;
+
+  finalizeCurrentLook:
+    () => FinalizedLook;
+
+  clearFinalizedLook:
+    (memberId?: string) => void;
 
   addMember: (
     name: string,
@@ -260,13 +263,20 @@ type FestiveContextValue = {
     genderFit: GenderFit,
   ) => void;
 
+  updateMember: (
+    memberId: string,
+    name: string,
+    ageGroup: AgeGroup,
+    genderFit: GenderFit,
+  ) => void;
+
+  removeMember: (
+    memberId: string,
+  ) => void;
+
   setActiveMemberId: (
     id: string,
   ) => void;
-
-  /*
-   * FESTIVAL
-   */
 
   setSelectedFestival: (
     festival: Festival,
@@ -276,17 +286,9 @@ type FestiveContextValue = {
     festivalId: string,
   ) => void;
 
-  /*
-   * PREFERENCES
-   */
-
   updatePreference: (
     preference: StylePreference,
   ) => void;
-
-  /*
-   * PHOTO
-   */
 
   setStandingPhoto: (
     file: File | null,
@@ -295,10 +297,6 @@ type FestiveContextValue = {
   setStandingPhotoCutoutUrl: (
     url: string | null,
   ) => void;
-
-  /*
-   * VTO
-   */
 
   setTryOnResult: (
     result:
@@ -312,19 +310,15 @@ const FestiveContext =
     FestiveContextValue | null
   >(null);
 
-/*
- * PROVIDER
- */
+/* =========================================================
+   PROVIDER
+   ========================================================= */
 
 export function FestiveProvider({
   children,
 }: {
   children: ReactNode;
 }) {
-  /*
-   * PARTY
-   */
-
   const [
     partyMembers,
     setPartyMembers,
@@ -339,10 +333,6 @@ export function FestiveProvider({
     mainProfile.id,
   );
 
-  /*
-   * FESTIVAL
-   */
-
   const [
     selectedFestival,
     setSelectedFestival,
@@ -356,10 +346,8 @@ export function FestiveProvider({
   ] = useState<string[]>([]);
 
   /*
-   * USER PHOTOS
-   *
-   * Browser File objects are not
-   * stored in localStorage.
+   * Browser File objects stay
+   * session-only.
    */
 
   const [
@@ -369,20 +357,12 @@ export function FestiveProvider({
     Record<string, File>
   >({});
 
-  /*
-   * OLD BACKGROUND CUTOUT STORAGE
-   */
-
   const [
     standingPhotoCutouts,
     setStandingPhotoCutouts,
   ] = useState<
     Record<string, string>
   >({});
-
-  /*
-   * YOUCAM RESULTS PER PERSON
-   */
 
   const [
     tryOnResults,
@@ -394,10 +374,6 @@ export function FestiveProvider({
     >
   >({});
 
-  /*
-   * EQUIPMENT PER PERSON
-   */
-
   const [
     equipmentByMember,
     setEquipmentByMember,
@@ -405,20 +381,21 @@ export function FestiveProvider({
     EquipmentByMember
   >({});
 
-  /*
-   * STORAGE READY
-   */
+  const [
+    finalizedLooksByMember,
+    setFinalizedLooksByMember,
+  ] = useState<
+    FinalizedLooksByMember
+  >({});
 
   const [
     storageReady,
     setStorageReady,
   ] = useState(false);
 
-  /*
-   * ============================================================
-   * LOAD SAVED STATE
-   * ============================================================
-   */
+  /* =======================================================
+     LOAD SAVED DATA
+     ======================================================= */
 
   useEffect(() => {
     if (
@@ -436,7 +413,6 @@ export function FestiveProvider({
 
       if (!saved) {
         setStorageReady(true);
-
         return;
       }
 
@@ -446,78 +422,82 @@ export function FestiveProvider({
         ) as SavedFestiveState;
 
       /*
-       * Restore members.
-       *
-       * Contest behaviour:
-       *
-       * ALL existing users start with:
-       * All Styles
-       * All Colours
-       *
-       * Main "My Look" is also forced
-       * to Adult Female.
+       * Normalize old saved users so
+       * TypeScript and old localStorage
+       * data stay safe.
        */
 
-      const savedMembers = (
+      const rawMembers =
         Array.isArray(
           parsed.partyMembers,
         ) &&
         parsed.partyMembers.length > 0
           ? parsed.partyMembers
-          : [mainProfile]
-      ).map((member) => {
-        const nextMember: PartyMember = {
-          ...member,
+          : [mainProfile];
 
-          preference: {
-            ...(member.preference ??
-              defaultPreference),
+      const savedMembers: PartyMember[] =
+        rawMembers.map(
+          (
+            member,
+          ): PartyMember => {
+            const isMain =
+              member.id ===
+              mainProfile.id;
 
-            color:
-              "All Colours",
+            return {
+              ...member,
 
-            style:
-              "All Styles",
+              id:
+                member.id,
+
+              name:
+                isMain
+                  ? "My Look"
+                  : member.name?.trim() ||
+                    "Family Member",
+
+              ageGroup:
+                isMain
+                  ? "adult"
+                  : member.ageGroup ??
+                    "adult",
+
+              genderFit:
+                isMain
+                  ? "female"
+                  : member.genderFit ??
+                    "unisex",
+
+              isMainProfile:
+                isMain,
+
+              preference: {
+                ...defaultPreference,
+
+                ...(
+                  member.preference ??
+                  {}
+                ),
+
+                color:
+                  "All Colours",
+
+                style:
+                  "All Styles",
+              },
+            };
           },
-        };
-
-        /*
-         * Main profile only.
-         */
-
-        if (
-          member.id ===
-          mainProfile.id
-        ) {
-          return {
-            ...nextMember,
-
-            name:
-              "My Look",
-
-            ageGroup:
-              "adult",
-
-            genderFit:
-              "female",
-
-            isMainProfile:
-              true,
-          };
-        }
-
-        return nextMember;
-      });
+        );
 
       setPartyMembers(
         savedMembers,
       );
 
       /*
-       * Restore active member.
+       * Active member
        */
 
-      const savedActiveExists =
+      const activeExists =
         savedMembers.some(
           (member) =>
             member.id ===
@@ -526,41 +506,40 @@ export function FestiveProvider({
 
       if (
         parsed.activeMemberId &&
-        savedActiveExists
+        activeExists
       ) {
         setActiveMemberId(
           parsed.activeMemberId,
         );
       } else {
         setActiveMemberId(
-          savedMembers[0]?.id ??
-            mainProfile.id,
+          mainProfile.id,
         );
       }
 
       /*
-       * Restore festival.
+       * Festival
        */
 
       if (
         parsed.selectedFestivalId
       ) {
-        const savedFestival =
+        const restoredFestival =
           festivals.find(
             (festival) =>
               festival.id ===
               parsed.selectedFestivalId,
           );
 
-        if (savedFestival) {
+        if (restoredFestival) {
           setSelectedFestival(
-            savedFestival,
+            restoredFestival,
           );
         }
       }
 
       /*
-       * Restore reminders.
+       * Reminders
        */
 
       if (
@@ -574,7 +553,7 @@ export function FestiveProvider({
       }
 
       /*
-       * Restore equipment.
+       * Equipment
        */
 
       if (
@@ -584,6 +563,20 @@ export function FestiveProvider({
       ) {
         setEquipmentByMember(
           parsed.equipmentByMember,
+        );
+      }
+
+      /*
+       * Finalized looks
+       */
+
+      if (
+        parsed.finalizedLooksByMember &&
+        typeof parsed.finalizedLooksByMember ===
+          "object"
+      ) {
+        setFinalizedLooksByMember(
+          parsed.finalizedLooksByMember,
         );
       }
     } catch (error) {
@@ -596,11 +589,9 @@ export function FestiveProvider({
     }
   }, []);
 
-  /*
-   * ============================================================
-   * SAVE STATE
-   * ============================================================
-   */
+  /* =======================================================
+     SAVE DATA
+     ======================================================= */
 
   useEffect(() => {
     if (
@@ -614,21 +605,19 @@ export function FestiveProvider({
     const stateToSave: SavedFestiveState =
       {
         partyMembers,
-
         activeMemberId,
 
         selectedFestivalId:
           selectedFestival.id,
 
         reminders,
-
         equipmentByMember,
+        finalizedLooksByMember,
       };
 
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-
         JSON.stringify(
           stateToSave,
         ),
@@ -646,11 +635,12 @@ export function FestiveProvider({
     selectedFestival,
     reminders,
     equipmentByMember,
+    finalizedLooksByMember,
   ]);
 
-  /*
-   * ACTIVE MEMBER
-   */
+  /* =======================================================
+     ACTIVE MEMBER DATA
+     ======================================================= */
 
   const activeMember =
     partyMembers.find(
@@ -661,53 +651,137 @@ export function FestiveProvider({
     partyMembers[0] ??
     mainProfile;
 
-  /*
-   * ACTIVE PHOTO
-   */
-
   const standingPhoto =
     standingPhotos[
       activeMemberId
     ] ?? null;
-
-  /*
-   * OLD CUTOUT
-   */
 
   const standingPhotoCutoutUrl =
     standingPhotoCutouts[
       activeMemberId
     ] ?? null;
 
-  /*
-   * ACTIVE VTO RESULT
-   */
-
   const tryOnResult =
     tryOnResults[
       activeMemberId
     ] ?? null;
-
-  /*
-   * ACTIVE EQUIPMENT
-   */
 
   const equippedItems =
     equipmentByMember[
       activeMemberId
     ] ?? {};
 
-  /*
-   * ============================================================
-   * ADD MEMBER
-   * ============================================================
-   */
+  const finalizedLook =
+    finalizedLooksByMember[
+      activeMemberId
+    ] ?? null;
 
-  const addMember = (
+  /* =======================================================
+     FINALIZE CURRENT LOOK
+     ======================================================= */
+
+  function finalizeCurrentLook(): FinalizedLook {
+    const equipmentSnapshot: EquippedItems =
+      Object.fromEntries(
+        Object.entries(
+          equippedItems,
+        ).map(
+          ([slot, item]) => [
+            slot,
+            item
+              ? { ...item }
+              : item,
+          ],
+        ),
+      ) as EquippedItems;
+
+    const finalized: FinalizedLook = {
+      memberId:
+        activeMember.id,
+
+      memberName:
+        activeMember.name,
+
+      ageGroup:
+        activeMember.ageGroup,
+
+      genderFit:
+        activeMember.genderFit,
+
+      festivalId:
+        selectedFestival.id,
+
+      festivalName:
+        selectedFestival.name,
+
+      festivalEmoji:
+        selectedFestival.emoji,
+
+      preference: {
+        ...activeMember.preference,
+      },
+
+      equippedItems:
+        equipmentSnapshot,
+
+      tryOnResult:
+        tryOnResult
+          ? {
+              ...tryOnResult,
+            }
+          : null,
+
+      finalizedAt:
+        new Date().toISOString(),
+    };
+
+    setFinalizedLooksByMember(
+      (current) => ({
+        ...current,
+
+        [activeMember.id]:
+          finalized,
+      }),
+    );
+
+    return finalized;
+  }
+
+  /* =======================================================
+     CLEAR FINALIZED LOOK
+     ======================================================= */
+
+  function clearFinalizedLook(
+    memberId?: string,
+  ) {
+    const targetId =
+      memberId ??
+      activeMemberId;
+
+    setFinalizedLooksByMember(
+      (current) => {
+        const next = {
+          ...current,
+        };
+
+        delete next[
+          targetId
+        ];
+
+        return next;
+      },
+    );
+  }
+
+  /* =======================================================
+     ADD MEMBER
+     ======================================================= */
+
+  function addMember(
     name: string,
     ageGroup: AgeGroup,
     genderFit: GenderFit,
-  ) => {
+  ) {
     const cleanName =
       name.trim();
 
@@ -719,7 +793,8 @@ export function FestiveProvider({
     }
 
     const newMember: PartyMember = {
-      id: `member-${Date.now()}`,
+      id:
+        `member-${Date.now()}`,
 
       name:
         cleanName,
@@ -728,10 +803,8 @@ export function FestiveProvider({
 
       genderFit,
 
-      /*
-       * Contest default:
-       * show all products immediately.
-       */
+      isMainProfile:
+        false,
 
       preference: {
         outfitBudget:
@@ -769,10 +842,6 @@ export function FestiveProvider({
       ],
     );
 
-    /*
-     * Empty equipment for new member.
-     */
-
     setEquipmentByMember(
       (current) => ({
         ...current,
@@ -785,18 +854,201 @@ export function FestiveProvider({
     setActiveMemberId(
       newMember.id,
     );
-  };
+  }
 
-  /*
-   * ============================================================
-   * UPDATE PREFERENCES
-   * ============================================================
-   */
+  /* =======================================================
+     EDIT MEMBER
+     ======================================================= */
 
-  const updatePreference = (
+  function updateMember(
+    memberId: string,
+    name: string,
+    ageGroup: AgeGroup,
+    genderFit: GenderFit,
+  ) {
+    if (
+      memberId ===
+      mainProfile.id
+    ) {
+      return;
+    }
+
+    const cleanName =
+      name.trim();
+
+    if (!cleanName) {
+      return;
+    }
+
+    setPartyMembers(
+      (current) =>
+        current.map(
+          (member) =>
+            member.id ===
+            memberId
+              ? {
+                  ...member,
+
+                  name:
+                    cleanName,
+
+                  ageGroup,
+
+                  genderFit,
+                }
+              : member,
+        ),
+    );
+
+    /*
+     * Keep finalized look connected
+     * to the same member ID.
+     */
+
+    setFinalizedLooksByMember(
+      (current) => {
+        const existing =
+          current[
+            memberId
+          ];
+
+        if (!existing) {
+          return current;
+        }
+
+        return {
+          ...current,
+
+          [memberId]: {
+            ...existing,
+
+            memberName:
+              cleanName,
+
+            ageGroup,
+
+            genderFit,
+          },
+        };
+      },
+    );
+  }
+
+  /* =======================================================
+     REMOVE MEMBER
+     ======================================================= */
+
+  function removeMember(
+    memberId: string,
+  ) {
+    /*
+     * My Look can never be deleted.
+     */
+
+    if (
+      memberId ===
+      mainProfile.id
+    ) {
+      return;
+    }
+
+    setPartyMembers(
+      (current) =>
+        current.filter(
+          (member) =>
+            member.id !==
+            memberId,
+        ),
+    );
+
+    if (
+      activeMemberId ===
+      memberId
+    ) {
+      setActiveMemberId(
+        mainProfile.id,
+      );
+    }
+
+    setEquipmentByMember(
+      (current) => {
+        const next = {
+          ...current,
+        };
+
+        delete next[
+          memberId
+        ];
+
+        return next;
+      },
+    );
+
+    setFinalizedLooksByMember(
+      (current) => {
+        const next = {
+          ...current,
+        };
+
+        delete next[
+          memberId
+        ];
+
+        return next;
+      },
+    );
+
+    setStandingPhotos(
+      (current) => {
+        const next = {
+          ...current,
+        };
+
+        delete next[
+          memberId
+        ];
+
+        return next;
+      },
+    );
+
+    setStandingPhotoCutouts(
+      (current) => {
+        const next = {
+          ...current,
+        };
+
+        delete next[
+          memberId
+        ];
+
+        return next;
+      },
+    );
+
+    setTryOnResults(
+      (current) => {
+        const next = {
+          ...current,
+        };
+
+        delete next[
+          memberId
+        ];
+
+        return next;
+      },
+    );
+  }
+
+  /* =======================================================
+     PREFERENCES
+     ======================================================= */
+
+  function updatePreference(
     preference:
       StylePreference,
-  ) => {
+  ) {
     setPartyMembers(
       (current) =>
         current.map(
@@ -805,28 +1057,23 @@ export function FestiveProvider({
             activeMemberId
               ? {
                   ...member,
-
                   preference,
                 }
               : member,
         ),
     );
-  };
+  }
 
-  /*
-   * ============================================================
-   * EQUIP
-   * ============================================================
-   *
-   * One item per slot.
-   */
+  /* =======================================================
+     EQUIPMENT
+     ======================================================= */
 
-  const equipItem = (
+  function equipItem(
     item: EquippedItem,
-  ) => {
+  ) {
     setEquipmentByMember(
       (current) => {
-        const currentMemberEquipment =
+        const currentEquipment =
           current[
             activeMemberId
           ] ?? {};
@@ -835,7 +1082,7 @@ export function FestiveProvider({
           ...current,
 
           [activeMemberId]: {
-            ...currentMemberEquipment,
+            ...currentEquipment,
 
             [item.slot]:
               item,
@@ -843,28 +1090,22 @@ export function FestiveProvider({
         };
       },
     );
-  };
+  }
 
-  /*
-   * REMOVE EQUIPPED ITEM
-   */
-
-  const unequipSlot = (
+  function unequipSlot(
     slot: EquipmentSlot,
-  ) => {
+  ) {
     setEquipmentByMember(
       (current) => {
-        const currentMemberEquipment =
-          current[
-            activeMemberId
-          ] ?? {};
+        const nextEquipment = {
+          ...(
+            current[
+              activeMemberId
+            ] ?? {}
+          ),
+        };
 
-        const nextMemberEquipment =
-          {
-            ...currentMemberEquipment,
-          };
-
-        delete nextMemberEquipment[
+        delete nextEquipment[
           slot
         ];
 
@@ -872,19 +1113,15 @@ export function FestiveProvider({
           ...current,
 
           [activeMemberId]:
-            nextMemberEquipment,
+            nextEquipment,
         };
       },
     );
-  };
+  }
 
-  /*
-   * CHECK EQUIPPED
-   */
-
-  const isItemEquipped = (
+  function isItemEquipped(
     itemId: string,
-  ) => {
+  ) {
     return Object.values(
       equippedItems,
     ).some(
@@ -892,17 +1129,15 @@ export function FestiveProvider({
         item?.id ===
         itemId,
     );
-  };
+  }
 
-  /*
-   * ============================================================
-   * SET STANDING PHOTO
-   * ============================================================
-   */
+  /* =======================================================
+     PHOTO
+     ======================================================= */
 
-  const setStandingPhoto = (
+  function setStandingPhoto(
     file: File | null,
-  ) => {
+  ) {
     setStandingPhotos(
       (current) => {
         const next = {
@@ -924,7 +1159,8 @@ export function FestiveProvider({
     );
 
     /*
-     * Clear old cutout.
+     * New photo clears old
+     * cutout and old VTO.
      */
 
     setStandingPhotoCutouts(
@@ -941,10 +1177,6 @@ export function FestiveProvider({
       },
     );
 
-    /*
-     * New photo = clear old VTO.
-     */
-
     setTryOnResults(
       (current) => {
         const next = {
@@ -958,48 +1190,41 @@ export function FestiveProvider({
         return next;
       },
     );
-  };
+  }
 
-  /*
-   * OLD CUTOUT SETTER
-   */
+  function setStandingPhotoCutoutUrl(
+    url: string | null,
+  ) {
+    setStandingPhotoCutouts(
+      (current) => {
+        const next = {
+          ...current,
+        };
 
-  const setStandingPhotoCutoutUrl =
-    (
-      url: string | null,
-    ) => {
-      setStandingPhotoCutouts(
-        (current) => {
-          const next = {
-            ...current,
-          };
+        if (url) {
+          next[
+            activeMemberId
+          ] = url;
+        } else {
+          delete next[
+            activeMemberId
+          ];
+        }
 
-          if (url) {
-            next[
-              activeMemberId
-            ] = url;
-          } else {
-            delete next[
-              activeMemberId
-            ];
-          }
+        return next;
+      },
+    );
+  }
 
-          return next;
-        },
-      );
-    };
+  /* =======================================================
+     YOUCAM RESULT
+     ======================================================= */
 
-  /*
-   * ============================================================
-   * SET VTO RESULT
-   * ============================================================
-   */
-
-  const setTryOnResult = (
+  function setTryOnResult(
     result:
       | VirtualTryOnResult
       | null,
-  ) => {
+  ) {
     setTryOnResults(
       (current) => {
         const next = {
@@ -1019,15 +1244,15 @@ export function FestiveProvider({
         return next;
       },
     );
-  };
+  }
 
-  /*
-   * FESTIVAL REMINDER
-   */
+  /* =======================================================
+     REMINDERS
+     ======================================================= */
 
-  const toggleReminder = (
+  function toggleReminder(
     festivalId: string,
-  ) => {
+  ) {
     setReminders(
       (current) => {
         if (
@@ -1048,11 +1273,11 @@ export function FestiveProvider({
         ];
       },
     );
-  };
+  }
 
-  /*
-   * PROVIDER
-   */
+  /* =======================================================
+     PROVIDER
+     ======================================================= */
 
   return (
     <FestiveContext.Provider
@@ -1083,7 +1308,19 @@ export function FestiveProvider({
 
         isItemEquipped,
 
+        finalizedLooksByMember,
+
+        finalizedLook,
+
+        finalizeCurrentLook,
+
+        clearFinalizedLook,
+
         addMember,
+
+        updateMember,
+
+        removeMember,
 
         setActiveMemberId,
 
@@ -1105,9 +1342,9 @@ export function FestiveProvider({
   );
 }
 
-/*
- * HOOK
- */
+/* =========================================================
+   HOOK
+   ========================================================= */
 
 export function useFestive() {
   const context =
@@ -1122,4 +1359,4 @@ export function useFestive() {
   }
 
   return context;
-}
+} 
