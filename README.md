@@ -1,227 +1,123 @@
-# Festive Quest
+# 🪔 Festive Ready AI  
+### Your Gamified Family Styling Hub
 
-Build a visually stunning single-page web app prototype called “Festive Quest”.
+Festive season is exciting, but shopping for the whole family can quickly become chaotic.
 
-This is NOT a normal ecommerce website.
+Different family members need different outfits, budgets, styles and sizes. You end up jumping between shopping tabs, trying to imagine how an outfit will actually look, keeping track of who has selected what, and then rushing to create a family greeting at the last minute.
 
-It is a gamified AI festive shopping and styling room where users build their real-world Diwali look the way they equip a character in an RPG.
+That is why we built **Festive Ready AI**.
 
-Main visual direction
+Instead of treating festive shopping like another product-search experience, Festive Ready AI turns it into an **RPG-inspired styling journey** where every family member becomes part of your **Festive Squad**.
 
-Create an original premium Diwali fantasy RPG dressing-room interface.
+The experience follows one connected flow:
 
-The feeling should combine:
+**Plan → Try → Equip → Prepare → Celebrate**
 
-elegant Indian festive luxury
+---
 
-RPG equipment / inventory UI
+# 🎯 The Problem
 
-warm cinematic Diwali atmosphere
+Festive shopping is often fragmented across multiple apps, websites and family members.
 
-modern premium game interface
+Families have to manage:
 
-immersive character-focused experience
+- Different outfits for different people
+- Individual budgets
+- Style and colour preferences
+- Product discovery
+- Understanding how clothes may actually look
+- Final family photos
+- Festive greeting creation
 
-Use deep jewel tones, warm golden lighting, subtle diya glow, palace-inspired decorative details, soft particles, ornamental borders, and premium typography.
+Each part may work individually, but the overall experience is disconnected.
 
-Do NOT copy graphics, logos, screenshots, characters, or exact UI from any existing game.
+Festive Ready AI brings these steps together into one interactive journey.
 
-Avoid making this look like:
+---
 
-a generic ecommerce store
+# 💡 The Idea
 
-a SaaS dashboard
+We asked a simple question:
 
-a simple grid of shopping cards
+> What if festive shopping felt more like gearing up your RPG party for a major quest?
 
-a generic purple AI website
+Instead of just adding products to a cart, users can:
 
-Layout
+1. Choose a festival
+2. Build their Festive Party
+3. Upload a standing photo
+4. Browse real festive products
+5. Try outfits using AI
+6. Equip selected products
+7. Prepare a clean RPG-style character
+8. Finalize each family member's look
+9. Reveal the Festive Squad
+10. Create a personalized family greeting
+11. Download or share the final card
 
-Design primarily for desktop first.
+---
 
-Center — HERO AREA
+# 🎮 The RPG Dressing Chamber
 
-The largest and most important area must be a tall character viewport in the center.
+The heart of Festive Ready AI is the **RPG Dressing Chamber**.
 
-For now, create an elegant placeholder character/mannequin/avatar presentation.
+Every family member becomes an independent styling profile.
 
-Make the viewport feel as if a 3D RPG character will eventually live here.
+Each profile can maintain its own:
 
-Include subtle lighting, floor glow, particles, depth, and an atmospheric palace/dressing-room background.
+- Name
+- Age group
+- Gender / fit preference
+- Standing photo
+- Outfit budget
+- Jewellery budget
+- Shoe budget
+- Accessory budget
+- Style preference
+- Colour preference
+- Equipped products
+- Virtual Try-On result
+- Finalized festive look
 
-The center character must visually dominate the page.
+This means one family member can be styled without affecting another.
 
-Add small controls below the character:
+---
 
-Rotate
+# 🗓️ 1. Festival Planner
 
-Zoom
+The journey starts by choosing the celebration.
 
-Reset View
+Current festival experiences include:
 
-They can be UI-only placeholders for now.
+- Raksha Bandhan
+- Janmashtami
+- Ganesh Chaturthi
+- Navratri
+- Diwali
 
-Left side — EQUIPMENT SLOTS
+The planner keeps upcoming festivals visible and allows users to manage optional reminders so festive preparation can begin earlier instead of becoming a last-minute rush.
 
-Create RPG-style equipment slots vertically around the character area.
+---
 
-Categories:
+# 👨‍👩‍👧‍👦 2. Build Your Festive Party
 
-Outfit
+Users can create styling profiles for themselves and their family members.
 
-Necklace
+Each member gets an independent festive journey.
 
-Earrings
+For example:
 
-Bangles
+```text
+My Look
+├── Photo
+├── Preferences
+├── Budget
+├── Equipped Products
+└── Final Look
 
-Ring
-
-Shoes
-
-Accessory
-
-Each slot should feel like a real RPG equipment slot:
-
-ornate frame
-
-icon
-
-label
-
-empty/equipped state
-
-subtle hover animation
-
-Show one or two slots as already equipped for visual demonstration.
-
-Right side — FESTIVE INVENTORY
-
-Create a compact inventory/product panel titled:
-
-Diwali Collection
-
-Show a few beautiful demo product cards.
-
-Each card should include:
-
-product image placeholder
-
-item name
-
-price
-
-small “Try On” button
-
-“Equip” button
-
-Keep these cards secondary to the character.
-
-They should feel like items inside a game inventory, not Amazon-style ecommerce cards.
-
-Include category tabs such as:
-
-Outfits | Jewellery | Shoes | Accessories
-
-Top area
-
-Create a compact fantasy-game-style header.
-
-Brand:
-Festive Quest
-
-Subtitle:
-Build your real-world festive look like you equip an RPG character.
-
-Include:
-
-Diwali selected as the current festival
-
-budget indicator
-
-small profile/avatar button
-
-Do not create a large marketing navbar.
-
-Bottom / character action
-
-Under the character, create a prominent but elegant button:
-
-✨ Finalize My Look
-
-Below or beside it, show a locked/secondary action:
-
-🎮 Generate My 3D Character
-
-Add a tiny note:
-“Available after your look is finalized.”
-
-This represents our future flow where the final look will be transformed into a 3D character.
-
-Interaction
-
-Add tasteful micro-interactions:
-
-equipment slot hover glow
-
-inventory card hover
-
-button animations
-
-subtle floating particles
-
-soft panel transitions
-
-Avoid excessive animation.
-
-Technical structure
-
-Use React and clean reusable components.
-
-Structure the UI so that later we can integrate:
-
-Perfect Corp / YouCam virtual try-on APIs
-
-React Three Fiber / Three.js for a real rotatable GLB character
-
-Meshy API for final Image-to-3D generation
-
-For now, DO NOT integrate any external APIs.
-
-DO NOT ask for API keys.
-
-Use mock/demo data only.
-
-Do not build authentication, database, checkout, affiliate integration, or backend yet.
-
-Priority
-
-The first impression should be:
-
-“This feels like a beautiful RPG equipment screen built for Diwali shopping.”
-
-The character must be the visual hero, not the products.
-
-Make this first screen polished enough to look impressive in a hackathon demo.
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/a377a3b0-a3e0-4ba5-bc92-67680f404e5f).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+Family Member 1
+├── Photo
+├── Preferences
+├── Budget
+├── Equipped Products
+└── Final Look

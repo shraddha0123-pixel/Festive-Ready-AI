@@ -28,6 +28,8 @@ import {
 
 import { createPortal } from "react-dom";
 
+import { useFestive } from "./FestiveContext";
+
 /*
  * ============================================================
  * STORAGE
@@ -35,7 +37,7 @@ import { createPortal } from "react-dom";
  */
 
 const TUTORIAL_COMPLETE_KEY =
-  "festive-ready-ai-tutorial-complete-v5";
+  "festive-ready-ai-tutorial-complete-v7";
 
 const TUTORIAL_NAME_KEY =
   "festive-ready-ai-tutorial-name-v1";
@@ -45,13 +47,13 @@ const TUTORIAL_NAME_KEY =
  * PROJECT INTRO
  *
  * Short on purpose.
- * Goal: total final recording stays under 2:30.
+ * Goal: keep the guided demo comfortably under 3 minutes.
  * ============================================================
  */
 
 const INTRO_SCRIPT =
-  "Festive shopping gets fragmented across family members, styles and budgets. " +
-  "Festive Ready AI turns that journey into an RPG-inspired family dressing room, using YouCam Virtual Try-On for outfit previews and YouCam background removal for personalized festive greeting cards. " +
+  "Festive shopping gets chaotic across family members, budgets, and shopping tabs. " +
+  "Festive Ready AI turns it into an RPG-inspired family dressing room powered by YouCam. " +
   "Here is how it works.";
 
 /*
@@ -68,11 +70,13 @@ type StepId =
   | "products"
   | "try-on"
   | "equip"
+  | "prepare"
   | "finalize"
   | "final-look"
   | "squad"
   | "wish-studio"
-  | "share";
+  | "share"
+  | "thanks";
 
 type FamilyStage =
   | "overview"
@@ -86,6 +90,16 @@ type ProductsPhase =
 type EquipPhase =
   | "button"
   | "panel";
+
+type PreparePhase =
+  | "ready"
+  | "preparing"
+  | "result";
+
+type TryOnPhase =
+  | "ready"
+  | "generating"
+  | "result";
 
 type TourStep = {
   id: StepId;
@@ -126,7 +140,7 @@ const tourSteps: TourStep[] = [
     description:
       "Choose the celebration and start festive planning before the last-minute rush.",
     narration:
-      "Start with the festival planner. It keeps upcoming celebrations visible, lets you choose the occasion, and supports optional reminders so festive planning can begin early.",
+      "Choose your festival and use optional reminders to start planning early.",
     tips: [
       "Choose the festival you are styling for.",
       "Upcoming festivals and optional reminders help users plan ahead.",
@@ -139,10 +153,10 @@ const tourSteps: TourStep[] = [
     description:
       "Create independent festive profiles for yourself and your family.",
     narration:
-      "This is your Festive Party. My Look represents you. Add family members with their name, age group and preferred fit, then switch between profiles anytime.",
+      "Create your Festive Party. Each member keeps their own photo, preferences, products, and final look.",
     tips: [
       "Style up to four family members.",
-      "Each profile keeps its own festive styling state.",
+      "Each profile keeps its own styling state.",
     ],
   },
 
@@ -152,7 +166,7 @@ const tourSteps: TourStep[] = [
     description:
       "The selected member's photo becomes the input for virtual try-on.",
     narration:
-      "Upload a clear, front-facing, standing photo for the selected family member. This gives the virtual try-on its best input.",
+      "Upload a clear standing photo for the selected family member.",
     tips: [
       "Use a clear JPG or PNG.",
       "Each member can use their own photo.",
@@ -163,9 +177,9 @@ const tourSteps: TourStep[] = [
     id: "products",
     title: "Explore Real Festive Products",
     description:
-      "Browse the collection across outfits, jewellery, shoes and accessories.",
+      "Browse real festive products and keep shopping links connected to the styling journey.",
     narration:
-      "Explore real festive products across Outfits, Jewellery, Shoes and Accessories. Product prices and shopping links stay connected to the styling experience.",
+      "Explore real outfits, jewellery, shoes, and accessories, with retailer links.",
     tips: [
       "Browse different festive product categories.",
       "View Product connects users to the retailer.",
@@ -178,10 +192,10 @@ const tourSteps: TourStep[] = [
     description:
       "Preview an outfit on the member's real uploaded photo.",
     narration:
-      "Now use YouCam Apparel Virtual Try-On to preview the selected outfit directly on the user's uploaded photo before making a decision.",
+      "Use YouCam Virtual Try-On to preview an outfit directly on the uploaded photo.",
     tips: [
       "Try On creates the AI outfit preview.",
-      "The real user photo remains the basis of the experience.",
+      "The real uploaded photo remains the basis of the experience.",
     ],
   },
 
@@ -189,12 +203,25 @@ const tourSteps: TourStep[] = [
     id: "equip",
     title: "Equip Your Choice",
     description:
-      "Turn selected products into an RPG-style festive loadout.",
+      "Turn the selected product into part of the member's RPG-style festive loadout.",
     narration:
-      "Try On previews the outfit. Equip decides. Equipping a product saves it into the active member's RPG-style festive loadout.",
+      "Try On lets you see it. Equip means you've chosen it for the RPG loadout.",
     tips: [
       "Try On = preview.",
       "Equip = choose it for the final look.",
+    ],
+  },
+
+  {
+    id: "prepare",
+    title: "Prepare Your Character",
+    description:
+      "Use YouCam Background Removal to turn the selected Virtual Try-On into a clean RPG character.",
+    narration:
+      "Prepare Character uses YouCam Background Removal to create a clean character from the selected look.",
+    tips: [
+      "Background removal runs on the real VTO result.",
+      "The prepared cutout can be reused later in Wish Studio.",
     ],
   },
 
@@ -204,9 +231,9 @@ const tourSteps: TourStep[] = [
     description:
       "Save the completed styling for the active family member.",
     narration:
-      "Once the photo and equipped outfit are ready, Finalize My Look saves this member's completed festive styling.",
+      "Your equipped products appear in the RPG panel. Finalize My Look saves this member's styling.",
     tips: [
-      "Equip an outfit before finalizing.",
+      "Review the prepared character and RPG loadout.",
       "Repeat the flow for additional family members.",
     ],
   },
@@ -217,7 +244,7 @@ const tourSteps: TourStep[] = [
     description:
       "Check the completed member before moving into the family experience.",
     narration:
-      "The Final Look screen brings together the final image, festival, equipped products and budget summary in one review.",
+      "Review the final image, products, shopping details, and budget.",
     tips: [
       "Review the final image.",
       "Check equipped products and budget before continuing.",
@@ -230,7 +257,7 @@ const tourSteps: TourStep[] = [
     description:
       "Bring finalized family members together.",
     narration:
-      "Finalize family looks, then reveal the Festive Squad. The ready counter shows how many members are complete.",
+      "Finalize your family looks, then reveal your Festive Squad.",
     tips: [
       "Ready members appear together.",
       "Unfinished members can still be styled later.",
@@ -241,11 +268,11 @@ const tourSteps: TourStep[] = [
     id: "wish-studio",
     title: "Create the Family Wish",
     description:
-      "Transform completed family looks into a personalized festive greeting.",
+      "Bring prepared family characters together in a personalized festive scene.",
     narration:
-      "In the Wish Studio, YouCam background removal creates clean family cutouts. Choose a festive scene and bring the finalized looks together in one greeting.",
+      "Prepared cutouts are reused in the Wish Studio. Choose a festive background and create your personalized family greeting.",
     tips: [
-      "Prepare Cutouts uses YouCam background removal.",
+      "Prepared cutouts can be reused from the Dressing Chamber.",
       "Choose a festive scene for the family card.",
     ],
   },
@@ -256,11 +283,21 @@ const tourSteps: TourStep[] = [
     description:
       "Export the personalized greeting and share the celebration.",
     narration:
-      "Finally, download the greeting card or share it through WhatsApp. Festive Ready AI turns festive shopping into a journey: plan, try, equip and celebrate.",
+      "Download your card or share it through WhatsApp.",
     tips: [
       "Download the finished card.",
       "Share the festive wish with friends and family.",
     ],
+  },
+
+  {
+    id: "thanks",
+    title: "Thank You",
+    description:
+      "A short closing card for the final demo recording.",
+    narration:
+      "Thank you to Devpost and YouCam, and to ChatGPT, Lovable, and Visual Studio Code for helping us bring Festive Ready AI to life.",
+    tips: [],
   },
 ];
 
@@ -923,38 +960,38 @@ function getFiltersTarget() {
   );
 }
 
-function getTryOnButton() {
-  const panel =
-    getCollectionPanel();
-
-  if (!panel) {
-    return null;
-  }
+function getTryOnButton(
+  lockedCard: HTMLElement | null = null,
+) {
+  const root: ParentNode =
+    lockedCard ??
+    getCollectionPanel() ??
+    document;
 
   return (
     findButton(
       "Try On",
-      panel,
+      root,
       true,
     ) ??
     findButton(
       "Generating",
-      panel,
+      root,
     )
   );
 }
 
-function getEquipButton() {
-  const panel =
-    getCollectionPanel();
-
-  if (!panel) {
-    return null;
-  }
+function getEquipButton(
+  lockedCard: HTMLElement | null = null,
+) {
+  const root: ParentNode =
+    lockedCard ??
+    getCollectionPanel() ??
+    document;
 
   return (
     Array.from(
-      panel.querySelectorAll<HTMLButtonElement>(
+      root.querySelectorAll<HTMLButtonElement>(
         "button",
       ),
     ).find((button) => {
@@ -971,14 +1008,49 @@ function getEquipButton() {
   );
 }
 
-function getCurrentProductImage() {
-  const action =
-    getTryOnButton() ??
-    getEquipButton();
-
-  const card =
+function getProductCard(
+  action: HTMLElement | null,
+) {
+  return (
     action?.closest(
       "li",
+    ) as HTMLElement | null
+  );
+}
+
+function getProductNameFromCard(
+  card: HTMLElement | null,
+) {
+  if (!card) {
+    return null;
+  }
+
+  const name =
+    card.querySelector<HTMLElement>(
+      "p",
+    );
+
+  return (
+    name?.textContent
+      ?.replace(/\s+/g, " ")
+      .trim() ??
+    null
+  );
+}
+
+function getCurrentProductImage(
+  lockedCard: HTMLElement | null = null,
+) {
+  const action =
+    lockedCard
+      ? null
+      : getTryOnButton() ??
+        getEquipButton();
+
+  const card =
+    lockedCard ??
+    getProductCard(
+      action,
     );
 
   return (
@@ -986,6 +1058,29 @@ function getCurrentProductImage() {
       "img",
     )?.src ??
     null
+  );
+}
+
+function getTryOnResultImage() {
+  const chamber =
+    getDressingChamber();
+
+  if (!chamber) {
+    return null;
+  }
+
+  return (
+    Array.from(
+      chamber.querySelectorAll<HTMLImageElement>(
+        "img",
+      ),
+    ).find((image) =>
+      image.alt
+        .toLowerCase()
+        .includes(
+          "virtual try-on",
+        ),
+    ) ?? null
   );
 }
 
@@ -1015,6 +1110,49 @@ function getEquipmentPanel() {
       );
     }) ?? null
   );
+}
+
+
+function getOutfitEquipmentSlot() {
+  const panel = getEquipmentPanel();
+  if (!panel) return null;
+
+  const label = Array.from(
+    panel.querySelectorAll<HTMLElement>("p,span,label,h3,h4"),
+  ).find((element) => normalizeText(element) === "outfit");
+
+  if (!label) return panel;
+
+  return (
+    findAncestor(
+      label,
+      (element) => {
+        const text = normalizeText(element);
+        const rect = element.getBoundingClientRect();
+        return (
+          text.includes("outfit") &&
+          rect.width > 90 &&
+          rect.height > 45 &&
+          rect.height < 260
+        );
+      },
+      5,
+    ) ??
+    label.parentElement ??
+    panel
+  );
+}
+
+function getPrepareCharacterButton() {
+  return (
+    findButton("Prepare Character", document, true) ??
+    findButton("Removing Background") ??
+    findButton("Character Ready")
+  );
+}
+
+function getPreparedCharacterTarget() {
+  return getPrepareCharacterButton() ?? getDressingChamber();
 }
 
 /*
@@ -1476,8 +1614,43 @@ export function FestiveTutorial() {
     null,
   );
 
+  const [
+    tryOnPhase,
+    setTryOnPhase,
+  ] = useState<TryOnPhase>(
+    "ready",
+  );
+
+  const [
+    preparePhase,
+    setPreparePhase,
+  ] = useState<PreparePhase>(
+    "ready",
+  );
+
+  const {
+    tryOnResult,
+    standingPhotoCutoutUrl,
+    equippedItems,
+  } = useFestive();
+
   const familyInitialCountRef =
     useRef(0);
+
+  const lockedTryOnCardRef =
+    useRef<HTMLElement | null>(
+      null,
+    );
+
+  const lockedTryOnProductNameRef =
+    useRef<string | null>(
+      null,
+    );
+
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const ambientGainRef = useRef<GainNode | null>(null);
+  const ambientOscillatorsRef = useRef<OscillatorNode[]>([]);
 
   const step =
     tourSteps[currentStep] ??
@@ -1638,7 +1811,7 @@ export function FestiveTutorial() {
          * Faster than previous 0.9.
          * Still natural enough for judges.
          */
-        utterance.rate = 1.07;
+        utterance.rate = 1.12;
         utterance.pitch = 1.02;
         utterance.volume = 1;
 
@@ -1673,6 +1846,101 @@ export function FestiveTutorial() {
       },
       [speakText],
     );
+
+  /*
+   * ============================================================
+   * SOFT WAITING AUDIO
+   * ============================================================
+   */
+
+  const getAudioContext = useCallback(() => {
+    if (!voiceEnabled) return null;
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+
+    const context = audioContextRef.current;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+    return context;
+  }, [voiceEnabled]);
+
+  const stopAmbientSound = useCallback(() => {
+    const context = audioContextRef.current;
+    const gain = ambientGainRef.current;
+
+    if (context && gain) {
+      const now = context.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+    }
+
+    const oscillators = ambientOscillatorsRef.current;
+    window.setTimeout(() => {
+      oscillators.forEach((oscillator) => {
+        try { oscillator.stop(); } catch { /* already stopped */ }
+      });
+    }, 500);
+
+    ambientOscillatorsRef.current = [];
+    ambientGainRef.current = null;
+  }, []);
+
+  const startAmbientSound = useCallback(() => {
+    if (!voiceEnabled || ambientGainRef.current) return;
+
+    const context = getAudioContext();
+    if (!context) return;
+
+    const master = context.createGain();
+    const now = context.currentTime;
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(0.018, now + 0.8);
+    master.connect(context.destination);
+
+    const frequencies = [220, 329.63, 523.25];
+    const oscillators = frequencies.map((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = index === 1 ? "triangle" : "sine";
+      oscillator.frequency.setValueAtTime(frequency, now);
+      gain.gain.setValueAtTime(index === 2 ? 0.12 : 0.2, now);
+      oscillator.connect(gain);
+      gain.connect(master);
+      oscillator.start();
+      return oscillator;
+    });
+
+    ambientGainRef.current = master;
+    ambientOscillatorsRef.current = oscillators;
+  }, [getAudioContext, voiceEnabled]);
+
+  const playSuccessChime = useCallback(() => {
+    if (!voiceEnabled) return;
+    const context = getAudioContext();
+    if (!context) return;
+
+    const now = context.currentTime;
+    ([[659.25, 0], [987.77, 0.08]] as const).forEach(
+      ([frequency, delay]) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const start = now + delay;
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.045, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.55);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(start);
+        oscillator.stop(start + 0.6);
+      },
+    );
+  }, [getAudioContext, voiceEnabled]);
 
   /*
    * ============================================================
@@ -1730,6 +1998,11 @@ export function FestiveTutorial() {
     setCurrentStep(0);
     setTourStarted(false);
     setTargetRect(null);
+    setTryOnPhase("ready");
+    setPreparePhase("ready");
+    stopAmbientSound();
+    lockedTryOnCardRef.current = null;
+    lockedTryOnProductNameRef.current = null;
 
     window.scrollTo({
       top: 0,
@@ -1743,7 +2016,7 @@ export function FestiveTutorial() {
    * ============================================================
    * FAST PROJECT OVERVIEW
    *
-   * ~17 seconds total.
+   * ~9.5 seconds total.
    * ============================================================
    */
 
@@ -1796,10 +2069,10 @@ export function FestiveTutorial() {
           cancelScroll =
             animateWindowScroll(
               bottom,
-              5200,
+              3000,
             );
         },
-        2200,
+        1600,
       );
 
     /*
@@ -1813,10 +2086,10 @@ export function FestiveTutorial() {
           cancelScroll =
             animateWindowScroll(
               0,
-              5200,
+              3000,
             );
         },
-        7900,
+        5000,
       );
 
     /*
@@ -1827,7 +2100,7 @@ export function FestiveTutorial() {
         () => {
           beginDetailedTour();
         },
-        16500,
+        9500,
       );
 
     return () => {
@@ -1936,7 +2209,7 @@ export function FestiveTutorial() {
         () => {
           button.click();
         },
-        1700,
+        900,
       );
 
     return () => {
@@ -1976,6 +2249,21 @@ export function FestiveTutorial() {
     const timer =
       window.setTimeout(
         () => {
+          const existingMembers =
+            getFamilyMemberButtons().length;
+
+          /*
+           * If the demo already has another member,
+           * show profile switching instead of forcing
+           * the user to create a duplicate member.
+           */
+          if (existingMembers > 1) {
+            setFamilyStage(
+              "switch",
+            );
+            return;
+          }
+
           const addButton =
             getAddMemberButton();
 
@@ -1993,7 +2281,7 @@ export function FestiveTutorial() {
 
           addButton.click();
         },
-        3200,
+        2100,
       );
 
     return () => {
@@ -2074,7 +2362,7 @@ export function FestiveTutorial() {
       window.setTimeout(
         () => {
           speakText(
-            "You can now switch between My Look and any family member. Each profile keeps its own photo, products and festive look.",
+            "Switch profiles anytime. Each member keeps their own styling state.",
           );
         },
         300,
@@ -2124,10 +2412,10 @@ export function FestiveTutorial() {
           );
 
           speakText(
-            "Users can narrow the collection using budget, style and colour preferences for the active family member.",
+            "Narrow the collection using budget, style, and colour filters.",
           );
         },
-        7500,
+        3200,
       );
 
     return () => {
@@ -2144,47 +2432,290 @@ export function FestiveTutorial() {
 
   /*
    * ============================================================
-   * EQUIP BUTTON -> EQUIPMENT PANEL
+   * REAL YOUCAM TRY-ON FLOW
+   *
+   * Lock the exact product the user clicks.
+   * Wait for the real context result before
+   * allowing the tutorial to move to Equip.
    * ============================================================
    */
 
   useEffect(() => {
     if (
       !tourStarted ||
-      step.id !== "equip"
+      step.id !== "try-on"
     ) {
       return;
     }
 
     ensureOutfitsSelected();
 
-    setEquipPhase(
-      "button",
+    setTryOnPhase(
+      "ready",
     );
 
-    const timer =
-      window.setTimeout(
-        () => {
-          setEquipPhase(
-            "panel",
-          );
+    lockedTryOnCardRef.current =
+      null;
 
-          speakText(
-            "Equipped outfits, jewellery, shoes and accessories appear here as the active member's RPG equipment.",
-          );
-        },
-        7200,
+    lockedTryOnProductNameRef.current =
+      null;
+
+    function handleTryOnClick(
+      event: MouseEvent,
+    ) {
+      const target =
+        event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const button =
+        target.closest(
+          "button",
+        ) as HTMLButtonElement | null;
+
+      if (
+        !button ||
+        normalizeText(button) !==
+          "try on"
+      ) {
+        return;
+      }
+
+      const panel =
+        getCollectionPanel();
+
+      if (
+        !panel ||
+        !panel.contains(button)
+      ) {
+        return;
+      }
+
+      const card =
+        getProductCard(
+          button,
+        );
+
+      if (!card) {
+        return;
+      }
+
+      lockedTryOnCardRef.current =
+        card;
+
+      lockedTryOnProductNameRef.current =
+        getProductNameFromCard(
+          card,
+        );
+
+      setProductPreview(
+        getCurrentProductImage(
+          card,
+        ),
       );
 
+      setTryOnPhase(
+        "generating",
+      );
+
+      startAmbientSound();
+    }
+
+    document.addEventListener(
+      "click",
+      handleTryOnClick,
+      true,
+    );
+
     return () => {
-      window.clearTimeout(
-        timer,
+      document.removeEventListener(
+        "click",
+        handleTryOnClick,
+        true,
       );
     };
   }, [
     currentStep,
+    startAmbientSound,
+    step.id,
+    tourStarted,
+  ]);
+
+  useEffect(() => {
+    if (
+      !tourStarted ||
+      step.id !== "try-on" ||
+      tryOnPhase !== "generating" ||
+      !tryOnResult?.url
+    ) {
+      return;
+    }
+
+    const lockedName =
+      lockedTryOnProductNameRef.current;
+
+    if (
+      !lockedName ||
+      tryOnResult.itemName !==
+        lockedName
+    ) {
+      return;
+    }
+
+    setTryOnPhase(
+      "result",
+    );
+
+    stopAmbientSound();
+    playSuccessChime();
+
+    window.setTimeout(() => {
+      speakText(
+        "Your YouCam preview is ready.",
+      );
+    }, 250);
+
+    window.setTimeout(() => {
+      const equipIndex = tourSteps.findIndex(
+        (item) => item.id === "equip",
+      );
+      if (equipIndex >= 0) {
+        setCurrentStep(equipIndex);
+      }
+    }, 1700);
+  }, [
+    step.id,
+    tourStarted,
+    tryOnPhase,
+    tryOnResult?.itemName,
+    tryOnResult?.url,
+    playSuccessChime,
+    speakText,
+    stopAmbientSound,
+  ]);
+
+  /*
+   * ============================================================
+   * REAL EQUIP FLOW
+   * ============================================================
+   */
+
+  useEffect(() => {
+    if (!tourStarted || step.id !== "equip") return;
+
+    ensureOutfitsSelected();
+
+    const lockedName = lockedTryOnProductNameRef.current;
+    const equippedName = equippedItems.outfit?.name ?? null;
+
+    if (lockedName && equippedName === lockedName) {
+      if (equipPhase !== "panel") {
+        setEquipPhase("panel");
+        window.setTimeout(() => {
+          speakText(
+            "Outfit equipped. Jewellery, shoes, and accessories use the same RPG loadout.",
+          );
+        }, 250);
+
+        window.setTimeout(() => {
+          const prepareIndex = tourSteps.findIndex(
+            (item) => item.id === "prepare",
+          );
+          if (prepareIndex >= 0) {
+            setCurrentStep(prepareIndex);
+          }
+        }, 1500);
+      }
+      return;
+    }
+
+    setEquipPhase("button");
+  }, [
+    currentStep,
+    equipPhase,
+    equippedItems.outfit?.name,
     speakText,
     step.id,
+    tourStarted,
+  ]);
+
+  /*
+   * ============================================================
+   * PREPARE CHARACTER -> REAL BACKGROUND REMOVAL
+   * ============================================================
+   */
+
+  useEffect(() => {
+    if (!tourStarted || step.id !== "prepare") return;
+
+    if (standingPhotoCutoutUrl) {
+      setPreparePhase("result");
+      return;
+    }
+
+    setPreparePhase("ready");
+
+    function handlePrepareClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const button = target.closest("button") as HTMLButtonElement | null;
+      if (!button || normalizeText(button) !== "prepare character") return;
+
+      const chamber = getDressingChamber();
+      if (chamber && !chamber.contains(button)) return;
+
+      setPreparePhase("preparing");
+      startAmbientSound();
+    }
+
+    document.addEventListener("click", handlePrepareClick, true);
+    return () => document.removeEventListener("click", handlePrepareClick, true);
+  }, [
+    currentStep,
+    startAmbientSound,
+    standingPhotoCutoutUrl,
+    step.id,
+    tourStarted,
+  ]);
+
+  useEffect(() => {
+    if (
+      !tourStarted ||
+      step.id !== "prepare" ||
+      !standingPhotoCutoutUrl ||
+      preparePhase === "result"
+    ) {
+      return;
+    }
+
+    setPreparePhase("result");
+    stopAmbientSound();
+    playSuccessChime();
+
+    window.setTimeout(() => {
+      speakText(
+        "Character ready. This cutout can be reused later in the Wish Studio.",
+      );
+    }, 250);
+
+    window.setTimeout(() => {
+      const finalizeIndex = tourSteps.findIndex(
+        (item) => item.id === "finalize",
+      );
+      if (finalizeIndex >= 0) {
+        setCurrentStep(finalizeIndex);
+      }
+    }, 1700);
+  }, [
+    playSuccessChime,
+    preparePhase,
+    speakText,
+    standingPhotoCutoutUrl,
+    step.id,
+    stopAmbientSound,
     tourStarted,
   ]);
 
@@ -2290,7 +2821,7 @@ export function FestiveTutorial() {
         () => {
           reveal.click();
         },
-        1500,
+        800,
       );
 
     return () => {
@@ -2383,13 +2914,40 @@ export function FestiveTutorial() {
             : getCollectionPanel();
 
         case "try-on":
-          return getTryOnButton();
+          if (
+            tryOnPhase ===
+            "result"
+          ) {
+            return (
+              getTryOnResultImage() ??
+              lockedTryOnCardRef.current ??
+              getTryOnButton(
+                lockedTryOnCardRef.current,
+              )
+            );
+          }
+
+          return (
+            getTryOnButton(
+              lockedTryOnCardRef.current,
+            ) ??
+            lockedTryOnCardRef.current
+          );
 
         case "equip":
           return equipPhase ===
             "panel"
-            ? getEquipmentPanel()
-            : getEquipButton();
+            ? getOutfitEquipmentSlot()
+            : getEquipButton(
+                lockedTryOnCardRef.current,
+              );
+
+        case "prepare":
+          return preparePhase ===
+            "result"
+            ? getPreparedCharacterTarget()
+            : getPrepareCharacterButton() ??
+                getDressingChamber();
 
         case "finalize":
           return getFinalizeButton();
@@ -2412,14 +2970,19 @@ export function FestiveTutorial() {
         case "share":
           return getShareTarget();
 
+        case "thanks":
+          return null;
+
         default:
           return null;
       }
     }, [
       equipPhase,
       familyStage,
+      preparePhase,
       productsPhase,
       step.id,
+      tryOnPhase,
     ]);
 
   /*
@@ -2489,7 +3052,9 @@ export function FestiveTutorial() {
           "equip"
       ) {
         setProductPreview(
-          getCurrentProductImage(),
+          getCurrentProductImage(
+            lockedTryOnCardRef.current,
+          ),
         );
       } else {
         setProductPreview(
@@ -2593,6 +3158,18 @@ export function FestiveTutorial() {
     updateTarget,
   ]);
 
+  useEffect(() => {
+    if (
+      !tourStarted ||
+      (step.id === "try-on" && tryOnPhase === "generating") ||
+      (step.id === "prepare" && preparePhase === "preparing")
+    ) {
+      return;
+    }
+
+    stopAmbientSound();
+  }, [preparePhase, step.id, stopAmbientSound, tourStarted, tryOnPhase]);
+
   /*
    * ============================================================
    * CLEAN UP OTHER WINDOWS BETWEEN STEPS
@@ -2648,7 +3225,9 @@ export function FestiveTutorial() {
       step.id ===
         "try-on" ||
       step.id ===
-        "equip"
+        "equip" ||
+      step.id ===
+        "prepare"
     ) {
       ensureOutfitsSelected();
     }
@@ -2696,6 +3275,11 @@ export function FestiveTutorial() {
     setIntroRunning(false);
     setTargetRect(null);
     setProductPreview(null);
+    setTryOnPhase("ready");
+    setPreparePhase("ready");
+    stopAmbientSound();
+    lockedTryOnCardRef.current = null;
+    lockedTryOnProductNameRef.current = null;
     setIsOpen(true);
 
     window.scrollTo({
@@ -2727,6 +3311,11 @@ export function FestiveTutorial() {
     setIntroRunning(false);
     setTargetRect(null);
     setProductPreview(null);
+    setTryOnPhase("ready");
+    setPreparePhase("ready");
+    stopAmbientSound();
+    lockedTryOnCardRef.current = null;
+    lockedTryOnProductNameRef.current = null;
   }
 
   function skipTour() {
@@ -2740,6 +3329,49 @@ export function FestiveTutorial() {
    */
 
   function goNext() {
+    if (
+      step.id ===
+        "try-on" &&
+      tryOnPhase !==
+        "result"
+    ) {
+      speakText(
+        tryOnPhase ===
+          "generating"
+          ? "Your YouCam preview is still generating."
+          : "Click the highlighted Try On button first.",
+      );
+
+      return;
+    }
+
+    if (
+      step.id ===
+        "equip" &&
+      equipPhase !==
+        "panel"
+    ) {
+      speakText(
+        "Equip the same outfit you just previewed.",
+      );
+      return;
+    }
+
+    if (
+      step.id ===
+        "prepare" &&
+      preparePhase !==
+        "result"
+    ) {
+      speakText(
+        preparePhase ===
+          "preparing"
+          ? "YouCam is removing the background now."
+          : "Click Prepare Character first.",
+      );
+      return;
+    }
+
     if (
       step.id ===
       "family"
@@ -2846,6 +3478,8 @@ export function FestiveTutorial() {
         false,
       );
 
+      stopAmbientSound();
+
       return;
     }
 
@@ -2880,6 +3514,43 @@ export function FestiveTutorial() {
       currentStep,
     );
   }
+
+  /*
+   * ============================================================
+   * FINAL 10-SECOND THANK-YOU CARD
+   * ============================================================
+   */
+
+  useEffect(() => {
+    if (
+      !tourStarted ||
+      step.id !== "thanks"
+    ) {
+      return;
+    }
+
+    const timer =
+      window.setTimeout(
+        () => {
+          completeTour();
+        },
+        10500,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timer,
+      );
+    };
+  }, [step.id, tourStarted]);
+
+  useEffect(() => {
+    return () => {
+      stopAmbientSound();
+      const context = audioContextRef.current;
+      if (context) void context.close();
+    };
+  }, [stopAmbientSound]);
 
   /*
    * ============================================================
@@ -2941,7 +3612,7 @@ export function FestiveTutorial() {
           </div>
 
           <p className="mb-2 text-[10px] font-semibold tracking-[0.22em] text-gold uppercase">
-            Under 2.5 Minute Guided Experience
+            Approx. 2:45 Guided Demo
           </p>
 
           <h2 className="font-display text-2xl text-foreground">
@@ -2949,7 +3620,7 @@ export function FestiveTutorial() {
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            First, we’ll quickly show you the complete app. Then the real controls will be highlighted while the narrator guides you through the experience.
+            A fast overview, then the real controls are highlighted while the narrator guides the working demo.
           </p>
 
           <div className="mt-6">
@@ -3098,7 +3769,7 @@ export function FestiveTutorial() {
               </h3>
 
               <p className="mt-1.5 text-[10px] leading-4 text-muted-foreground">
-                Quick overview first — then we’ll guide you through the real workflow.
+                Quick overview — then the real workflow.
               </p>
 
             </div>
@@ -3168,6 +3839,104 @@ export function FestiveTutorial() {
 
   /*
    * ============================================================
+   * FINAL THANK-YOU CARD
+   * ============================================================
+   */
+
+  if (
+    tourStarted &&
+    step.id === "thanks"
+  ) {
+    return createPortal(
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#120705]/95 p-6 backdrop-blur-sm">
+
+        <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-gold/45 bg-background/95 px-8 py-10 text-center shadow-2xl">
+
+          <div className="pointer-events-none absolute inset-0 opacity-30"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 20%, rgba(218,165,32,0.22), transparent 38%), radial-gradient(circle at 20% 80%, rgba(218,165,32,0.12), transparent 35%), radial-gradient(circle at 80% 75%, rgba(218,165,32,0.12), transparent 35%)",
+            }}
+          />
+
+          <div className="relative">
+
+            <div className="mx-auto flex size-16 items-center justify-center rounded-2xl border border-gold/40 bg-gold/10">
+              <Sparkles className="size-8 text-gold" />
+            </div>
+
+            <p className="mt-5 text-[10px] font-semibold tracking-[0.28em] text-gold uppercase">
+              Festive Ready AI
+            </p>
+
+            <h2 className="mt-3 font-display text-4xl text-foreground">
+              Thank You ❤️
+            </h2>
+
+            <p className="mt-2 text-[10px] tracking-[0.2em] text-gold/80 uppercase">
+              Plan • Try • Equip • Prepare • Celebrate
+            </p>
+
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
+              Thank you to Devpost, YouCam, and the tools that helped us bring this festive journey to life.
+            </p>
+
+            <div className="mx-auto mt-7 max-w-xl rounded-2xl border border-gold/25 bg-gold/5 px-6 py-5">
+
+              <p className="font-display text-xl text-gold">
+                Loved Festive Ready AI?
+              </p>
+
+              <p className="mt-2 text-sm text-foreground">
+                Subscribe to our channel &amp; leave us a ❤️ on Devpost
+              </p>
+
+            </div>
+
+            <p className="mt-6 text-[10px] tracking-[0.14em] text-muted-foreground">
+              YouCam • ChatGPT • Lovable • Visual Studio Code
+            </p>
+
+            <div className="mt-7 flex items-center justify-center gap-2">
+
+              <button
+                type="button"
+                onClick={toggleVoice}
+                className="flex size-9 items-center justify-center rounded-lg border border-gold/25 text-gold hover:border-gold"
+                title={voiceEnabled ? "Mute voice" : "Turn voice on"}
+              >
+                {voiceEnabled ? (
+                  <Volume2 className="size-4" />
+                ) : (
+                  <VolumeX className="size-4" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={completeTour}
+                className="rounded-lg bg-gold px-5 py-2.5 text-xs font-semibold text-background hover:brightness-110"
+              >
+                Finish Demo
+              </button>
+
+            </div>
+
+            <p className="mt-3 text-[9px] text-muted-foreground/70">
+              This closing card ends automatically after about 10 seconds.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>,
+      document.body,
+    );
+  }
+
+  /*
+   * ============================================================
    * DYNAMIC TOOLTIP CONTENT
    * ============================================================
    */
@@ -3212,14 +3981,58 @@ export function FestiveTutorial() {
   }
 
   if (
+    step.id === "try-on" &&
+    tryOnPhase === "generating"
+  ) {
+    displayTitle =
+      "YouCam Is Creating Your Preview";
+
+    displayDescription =
+      "The tutorial stays locked to the exact selected outfit while YouCam generates the real preview.";
+  }
+
+  if (
+    step.id === "try-on" &&
+    tryOnPhase === "result"
+  ) {
+    displayTitle =
+      "Your YouCam Preview Is Ready";
+
+    displayDescription =
+      "The real generated outfit preview is visible in the Dressing Chamber.";
+  }
+
+  if (
     step.id === "equip" &&
     equipPhase === "panel"
   ) {
     displayTitle =
-      "Your RPG Equipment";
+      "Outfit Equipped";
 
     displayDescription =
-      "Equipped products appear in the left panel as the active member's RPG-style loadout.";
+      "The exact outfit you previewed is now saved in the member's Outfit equipment slot.";
+  }
+
+  if (
+    step.id === "prepare" &&
+    preparePhase === "preparing"
+  ) {
+    displayTitle =
+      "YouCam Is Preparing Your Character";
+
+    displayDescription =
+      "YouCam Background Removal is running on the real Virtual Try-On result.";
+  }
+
+  if (
+    step.id === "prepare" &&
+    preparePhase === "result"
+  ) {
+    displayTitle =
+      "Character Ready";
+
+    displayDescription =
+      "The clean YouCam cutout is ready in the Dressing Chamber and can be reused later in Wish Studio.";
   }
 
   if (
@@ -3753,7 +4566,13 @@ export function FestiveTutorial() {
             <div className="mt-3 rounded-lg border border-gold/25 bg-gold/5 px-3 py-2">
 
               <p className="text-[9px] leading-4 text-muted-foreground">
-                The highlighted Try On button remains clickable — use the real YouCam VTO during the demo.
+                {tryOnPhase ===
+                "result"
+                  ? "✓ Real YouCam result ready. Review the generated look, then continue to Equip."
+                  : tryOnPhase ===
+                      "generating"
+                    ? "Generating the real YouCam preview… this step stays locked to the outfit you selected."
+                    : "The highlighted Try On button remains clickable — use the real YouCam VTO during the demo."}
               </p>
 
             </div>
@@ -3768,7 +4587,28 @@ export function FestiveTutorial() {
             <div className="mt-3 rounded-lg border border-gold/25 bg-gold/5 px-3 py-2">
 
               <p className="text-[9px] leading-4 text-muted-foreground">
-                Outfit • Jewellery • Shoes • Accessories become RPG equipment for the active family member.
+                ✓ The selected outfit is now in the active member's RPG Outfit slot.
+              </p>
+
+            </div>
+          )}
+
+          {/* Prepare Character */}
+
+          {step.id ===
+            "prepare" && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-gold/25 bg-gold/5 px-3 py-2">
+
+              <WandSparkles className="mt-0.5 size-3.5 shrink-0 text-gold" />
+
+              <p className="text-[9px] leading-4 text-muted-foreground">
+                {preparePhase ===
+                "result"
+                  ? "✓ Real background removal complete. This clean cutout can be reused in Wish Studio."
+                  : preparePhase ===
+                      "preparing"
+                    ? "YouCam is removing the background… the calm shimmer will stop automatically when the real cutout is ready."
+                    : "Click the highlighted Prepare Character button to run the real YouCam background-removal flow."}
               </p>
 
             </div>
@@ -3781,7 +4621,7 @@ export function FestiveTutorial() {
             <div className="mt-3 rounded-lg border border-gold/25 bg-gold/5 px-3 py-2">
 
               <p className="text-[9px] leading-4 text-muted-foreground">
-                For the clean demo flow: Try On → Equip → Finalize.
+                Demo flow: Try On → Equip → Prepare Character → Finalize.
               </p>
 
             </div>
@@ -3797,7 +4637,7 @@ export function FestiveTutorial() {
               <WandSparkles className="mt-0.5 size-3.5 shrink-0 text-gold" />
 
               <p className="text-[9px] leading-4 text-muted-foreground">
-                Prepare Cutouts → YouCam background removal → choose a scene → create the greeting.
+                Reuse prepared cutouts → prepare only missing members → choose a scene → create the greeting.
               </p>
 
             </div>
@@ -3859,7 +4699,11 @@ export function FestiveTutorial() {
 
                 {step.id ===
                 "final-look"
-                  ? "Complete Try On, Equip and Finalize first. The Final Look Ready window will then appear."
+                  ? "Complete Try On, Equip, Prepare Character and Finalize first. The Final Look Ready window will then appear."
+
+                  : step.id ===
+                      "prepare"
+                    ? "Equip the same outfit you previewed first. Prepare Character will then become available."
 
                   : step.id ===
                       "squad"
@@ -3924,10 +4768,31 @@ export function FestiveTutorial() {
               onClick={goNext}
               className="flex items-center gap-1 rounded-lg bg-gold px-4 py-2 text-xs font-semibold text-background hover:brightness-110"
             >
-              {currentStep ===
-              tourSteps.length - 1
-                ? "Start Styling"
-                : "Next"}
+              {step.id ===
+                "try-on" &&
+              tryOnPhase !==
+                "result"
+                ? tryOnPhase ===
+                    "generating"
+                  ? "Generating..."
+                  : "Try On First"
+                : step.id ===
+                      "equip" &&
+                    equipPhase !==
+                      "panel"
+                  ? "Equip First"
+                  : step.id ===
+                        "prepare" &&
+                      preparePhase !==
+                        "result"
+                    ? preparePhase ===
+                        "preparing"
+                      ? "Removing..."
+                      : "Prepare First"
+                    : currentStep ===
+                        tourSteps.length - 1
+                      ? "Start Styling"
+                      : "Next"}
 
               {currentStep !==
                 tourSteps.length -

@@ -1,16 +1,18 @@
 import {
-  useEffect,
-  useState,
-} from "react";
-
-import {
+  Loader2,
   RotateCw,
   Sparkles,
   Undo2,
   Upload,
+  WandSparkles,
   X,
   ZoomIn,
 } from "lucide-react";
+
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import character from "@/assets/character.png";
 
@@ -24,6 +26,27 @@ import { Embers } from "./Embers";
 import { FestiveSquadReveal } from "./FestiveSquadReveal";
 import { useFestive } from "./FestiveContext";
 
+/*
+ * IMPORTANT:
+ * This is intentionally the SAME cache key used
+ * by FestiveAnimatedSquad.
+ *
+ * A cutout prepared here can therefore be reused
+ * later inside the Wish Studio without another
+ * unnecessary YouCam background-removal request.
+ */
+const CUTOUT_CACHE_KEY =
+  "festive-ready-ai-cutout-cache-v1";
+
+type CutoutCache =
+  Record<string, string>;
+
+type RemoveBackgroundResponse = {
+  success?: boolean;
+  url?: string;
+  error?: string;
+};
+
 export function CharacterStage() {
   const {
     activeMember,
@@ -32,6 +55,9 @@ export function CharacterStage() {
 
     standingPhoto,
     setStandingPhoto,
+
+    standingPhotoCutoutUrl,
+    setStandingPhotoCutoutUrl,
 
     tryOnResult,
     setTryOnResult,
@@ -44,17 +70,35 @@ export function CharacterStage() {
   const [
     standingPhotoPreview,
     setStandingPhotoPreview,
-  ] = useState<string | null>(null);
+  ] = useState<string | null>(
+    null,
+  );
 
   const [
     photoError,
     setPhotoError,
-  ] = useState<string | null>(null);
+  ] = useState<string | null>(
+    null,
+  );
 
   const [
     finalizeError,
     setFinalizeError,
-  ] = useState<string | null>(null);
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    characterError,
+    setCharacterError,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    preparingCharacter,
+    setPreparingCharacter,
+  ] = useState(false);
 
   const [
     showFinalLook,
@@ -67,13 +111,82 @@ export function CharacterStage() {
   ] = useState(1);
 
   /*
-   * Create preview for the CURRENT
-   * active member's uploaded photo.
+   * ============================================================
+   * CUTOUT CACHE
+   * ============================================================
+   */
+
+  function readCutoutCache() {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return {} as CutoutCache;
+    }
+
+    try {
+      const raw =
+        window.localStorage.getItem(
+          CUTOUT_CACHE_KEY,
+        );
+
+      if (!raw) {
+        return {} as CutoutCache;
+      }
+
+      return JSON.parse(
+        raw,
+      ) as CutoutCache;
+    } catch {
+      return {} as CutoutCache;
+    }
+  }
+
+  function saveCutoutCache(
+    cache: CutoutCache,
+  ) {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        CUTOUT_CACHE_KEY,
+        JSON.stringify(cache),
+      );
+    } catch (error) {
+      console.error(
+        "Could not save cutout cache:",
+        error,
+      );
+    }
+  }
+
+  function getCurrentCutoutCacheId(
+    imageUrl: string,
+  ) {
+    return [
+      selectedFestival.id,
+      activeMember.id,
+      imageUrl,
+    ].join("::");
+  }
+
+  /*
+   * ============================================================
+   * PHOTO PREVIEW
+   * ============================================================
    */
 
   useEffect(() => {
     if (!standingPhoto) {
-      setStandingPhotoPreview(null);
+      setStandingPhotoPreview(
+        null,
+      );
+
       return;
     }
 
@@ -94,8 +207,62 @@ export function CharacterStage() {
   }, [standingPhoto]);
 
   /*
-   * Reset zoom when switching member
-   * or when a new YouCam result appears.
+   * ============================================================
+   * RESTORE PREPARED CHARACTER
+   *
+   * When:
+   * - member changes
+   * - festival changes
+   * - VTO result changes
+   *
+   * Check the SAME cache used by Wish Studio.
+   * ============================================================
+   */
+
+  useEffect(() => {
+    setCharacterError(null);
+
+    if (!tryOnResult?.url) {
+      if (standingPhotoCutoutUrl) {
+        setStandingPhotoCutoutUrl(
+          null,
+        );
+      }
+
+      return;
+    }
+
+    const cache =
+      readCutoutCache();
+
+    const cacheId =
+      getCurrentCutoutCacheId(
+        tryOnResult.url,
+      );
+
+    const cached =
+      cache[cacheId] ??
+      null;
+
+    if (
+      cached !==
+      standingPhotoCutoutUrl
+    ) {
+      setStandingPhotoCutoutUrl(
+        cached,
+      );
+    }
+  }, [
+    activeMember.id,
+    selectedFestival.id,
+    tryOnResult?.url,
+    standingPhotoCutoutUrl,
+  ]);
+
+  /*
+   * ============================================================
+   * RESET VIEW
+   * ============================================================
    */
 
   useEffect(() => {
@@ -104,13 +271,60 @@ export function CharacterStage() {
     setShowFinalLook(false);
 
     setFinalizeError(null);
+    setCharacterError(null);
   }, [
     activeMember.id,
     tryOnResult?.url,
   ]);
 
   /*
+   * ============================================================
+   * VTO / EQUIPMENT MATCH
+   *
+   * We only prepare a cutout when the outfit that was
+   * previewed is the outfit that was actually equipped.
+   * ============================================================
+   */
+
+  const tryOnMatchesEquippedOutfit =
+    Boolean(
+      tryOnResult &&
+        equippedItems.outfit &&
+        equippedItems.outfit.name ===
+          tryOnResult.itemName,
+    );
+
+  /*
+   * If the user changes the equipped outfit after preparing
+   * a character, do not continue showing a stale cutout.
+   */
+  useEffect(() => {
+    if (
+      !standingPhotoCutoutUrl ||
+      !tryOnResult
+    ) {
+      return;
+    }
+
+    if (
+      !equippedItems.outfit ||
+      equippedItems.outfit.name !==
+        tryOnResult.itemName
+    ) {
+      setStandingPhotoCutoutUrl(
+        null,
+      );
+    }
+  }, [
+    equippedItems.outfit?.id,
+    tryOnResult?.itemName,
+    standingPhotoCutoutUrl,
+  ]);
+
+  /*
+   * ============================================================
    * PHOTO UPLOAD
+   * ============================================================
    */
 
   function handlePhotoUpload(
@@ -118,6 +332,7 @@ export function CharacterStage() {
   ) {
     setPhotoError(null);
     setFinalizeError(null);
+    setCharacterError(null);
 
     if (!file) {
       return;
@@ -153,14 +368,42 @@ export function CharacterStage() {
     }
 
     /*
-     * Photo belongs only to the
-     * currently selected family member.
+     * Photo belongs only to current member.
+     * FestiveContext also clears old cutout + old VTO.
      */
 
-    setStandingPhoto(file);
+    setStandingPhoto(
+      file,
+    );
 
-    setTryOnResult(null);
+    setTryOnResult(
+      null,
+    );
 
+    setStandingPhotoCutoutUrl(
+      null,
+    );
+
+    setFigureScale(1);
+  }
+
+  /*
+   * ============================================================
+   * ORIGINAL PHOTO
+   * ============================================================
+   */
+
+  function showOriginalPhoto() {
+    setTryOnResult(
+      null,
+    );
+
+    setStandingPhotoCutoutUrl(
+      null,
+    );
+
+    setCharacterError(null);
+    setFinalizeError(null);
     setFigureScale(1);
   }
 
@@ -171,10 +414,6 @@ export function CharacterStage() {
    */
 
   function getFallbackCharacter() {
-    /*
-     * ADULT FEMALE
-     */
-
     if (
       activeMember.ageGroup ===
         "adult" &&
@@ -183,10 +422,6 @@ export function CharacterStage() {
     ) {
       return character;
     }
-
-    /*
-     * ADULT MALE
-     */
 
     if (
       activeMember.ageGroup ===
@@ -197,10 +432,6 @@ export function CharacterStage() {
       return adultMale;
     }
 
-    /*
-     * TEEN FEMALE
-     */
-
     if (
       activeMember.ageGroup ===
         "teen" &&
@@ -209,10 +440,6 @@ export function CharacterStage() {
     ) {
       return teenFemale;
     }
-
-    /*
-     * TEEN MALE
-     */
 
     if (
       activeMember.ageGroup ===
@@ -223,10 +450,6 @@ export function CharacterStage() {
       return teenMale;
     }
 
-    /*
-     * KID FEMALE
-     */
-
     if (
       activeMember.ageGroup ===
         "kid" &&
@@ -235,10 +458,6 @@ export function CharacterStage() {
     ) {
       return kidFemale;
     }
-
-    /*
-     * KID MALE
-     */
 
     if (
       activeMember.ageGroup ===
@@ -256,33 +475,42 @@ export function CharacterStage() {
     getFallbackCharacter();
 
   /*
+   * ============================================================
    * DISPLAY PRIORITY
    *
-   * 1. YouCam result
-   * 2. Uploaded photo
-   * 3. RPG fallback
+   * 1. Prepared transparent YouCam character
+   * 2. YouCam VTO result
+   * 3. Uploaded photo
+   * 4. RPG fallback
+   * ============================================================
    */
 
   const displayImage =
+    standingPhotoCutoutUrl ??
     tryOnResult?.url ??
     standingPhotoPreview ??
     fallbackCharacter;
 
   const isUserImage =
     Boolean(
-      standingPhoto ||
+      standingPhotoCutoutUrl ||
+        standingPhoto ||
         tryOnResult,
     );
 
   /*
+   * ============================================================
    * CURRENT PREFERENCES
+   * ============================================================
    */
 
   const preference =
     activeMember.preference;
 
   /*
+   * ============================================================
    * EQUIPPED ITEMS
+   * ============================================================
    */
 
   const equippedList =
@@ -300,19 +528,168 @@ export function CharacterStage() {
     );
 
   /*
+   * ============================================================
    * JEWELLERY CHECK
+   * ============================================================
    */
 
   const hasJewellery =
     Boolean(
       equippedItems.necklace ||
-      equippedItems.earrings ||
-      equippedItems.bangles ||
-      equippedItems.ring,
+        equippedItems.earrings ||
+        equippedItems.bangles ||
+        equippedItems.ring,
     );
 
   /*
+   * ============================================================
+   * PREPARE CHARACTER
+   *
+   * Real YouCam background removal.
+   * API key remains server-side.
+   * ============================================================
+   */
+
+  async function prepareCharacter() {
+    setCharacterError(null);
+    setFinalizeError(null);
+
+    if (!tryOnResult?.url) {
+      setCharacterError(
+        "Create a Virtual Try-On result first.",
+      );
+
+      return;
+    }
+
+    if (!equippedItems.outfit) {
+      setCharacterError(
+        "Equip the previewed outfit before preparing your character.",
+      );
+
+      return;
+    }
+
+    if (
+      equippedItems.outfit.name !==
+      tryOnResult.itemName
+    ) {
+      setCharacterError(
+        "The equipped outfit does not match this Virtual Try-On preview. Equip the previewed outfit first.",
+      );
+
+      return;
+    }
+
+    /*
+     * CACHE FIRST
+     */
+
+    const cache =
+      readCutoutCache();
+
+    const cacheId =
+      getCurrentCutoutCacheId(
+        tryOnResult.url,
+      );
+
+    const cached =
+      cache[cacheId];
+
+    if (cached) {
+      setStandingPhotoCutoutUrl(
+        cached,
+      );
+
+      return;
+    }
+
+    setPreparingCharacter(
+      true,
+    );
+
+    try {
+      const formData =
+        new FormData();
+
+      /*
+       * Same contract already used by
+       * FestiveAnimatedSquad.
+       */
+
+      formData.append(
+        "personUrl",
+        tryOnResult.url,
+      );
+
+      const response =
+        await fetch(
+          "/api/youcam-remove-bg",
+          {
+            method: "POST",
+            body: formData,
+          },
+        );
+
+      const payload =
+        (await response.json()) as
+          RemoveBackgroundResponse;
+
+      if (
+        !response.ok ||
+        !payload.success ||
+        !payload.url
+      ) {
+        throw new Error(
+          payload.error ??
+            "Background removal failed.",
+        );
+      }
+
+      /*
+       * DISPLAY IN DRESSING CHAMBER
+       */
+
+      setStandingPhotoCutoutUrl(
+        payload.url,
+      );
+
+      /*
+       * SAVE USING SAME WISH-STUDIO CACHE KEY
+       */
+
+      cache[cacheId] =
+        payload.url;
+
+      saveCutoutCache(
+        cache,
+      );
+
+      console.log(
+        "YouCam background removal successful. Prepared character cached for Wish Studio.",
+      );
+    } catch (error) {
+      console.error(
+        "YouCam background-removal error:",
+        error,
+      );
+
+      setCharacterError(
+        error instanceof Error
+          ? error.message
+          : "Could not prepare your character.",
+      );
+    } finally {
+      setPreparingCharacter(
+        false,
+      );
+    }
+  }
+
+  /*
+   * ============================================================
    * ZOOM
+   * ============================================================
    */
 
   function handleZoom() {
@@ -343,6 +720,7 @@ export function CharacterStage() {
 
   function handleFinalize() {
     setFinalizeError(null);
+    setCharacterError(null);
 
     if (
       !standingPhoto &&
@@ -364,20 +742,36 @@ export function CharacterStage() {
     }
 
     /*
-     * Save finalized snapshot
-     * for the active family member.
+     * If a VTO preview exists, protect against
+     * finalizing a different equipped outfit.
      */
+
+    if (
+      tryOnResult &&
+      equippedItems.outfit.name !==
+        tryOnResult.itemName
+    ) {
+      setFinalizeError(
+        "Your Virtual Try-On preview does not match the equipped outfit. Try On the equipped outfit before finalizing.",
+      );
+
+      return;
+    }
 
     finalizeCurrentLook();
 
-    setShowFinalLook(true);
+    setShowFinalLook(
+      true,
+    );
   }
 
   return (
     <>
       <section className="flex min-h-0 flex-col gap-5">
 
-        {/* RPG DRESSING CHAMBER */}
+        {/* =====================================================
+            RPG DRESSING CHAMBER
+            ===================================================== */}
 
         <div className="panel-ornate relative h-[650px] overflow-hidden rounded-2xl">
 
@@ -427,13 +821,9 @@ export function CharacterStage() {
               {tryOnResult && (
                 <button
                   type="button"
-
-                  onClick={() =>
-                    setTryOnResult(
-                      null,
-                    )
+                  onClick={
+                    showOriginalPhoto
                   }
-
                   className="rounded-lg border border-gold/40 bg-background/80 px-3 py-2 text-[9px] tracking-[0.12em] text-gold uppercase hover:border-gold"
                 >
                   Original
@@ -446,11 +836,8 @@ export function CharacterStage() {
 
                 <input
                   type="file"
-
                   accept="image/jpeg,image/png"
-
                   className="hidden"
-
                   onChange={(event) =>
                     handlePhotoUpload(
                       event.target
@@ -472,9 +859,7 @@ export function CharacterStage() {
 
             <div
               aria-hidden
-
               className="absolute bottom-8 left-1/2 h-28 w-[80%] max-w-[440px] -translate-x-1/2 rounded-[50%]"
-
               style={{
                 background:
                   "radial-gradient(ellipse, rgba(240,180,50,0.45), rgba(130,70,20,0.14) 48%, transparent 72%)",
@@ -488,7 +873,6 @@ export function CharacterStage() {
 
             <div
               aria-hidden
-
               className="absolute bottom-7 left-1/2 h-16 w-[65%] max-w-[360px] -translate-x-1/2 rounded-[50%] border border-gold/30"
             />
 
@@ -496,7 +880,6 @@ export function CharacterStage() {
 
             <div
               className="relative z-10 flex h-full w-full items-end justify-center"
-
               style={{
                 transform:
                   `scale(${figureScale})`,
@@ -513,15 +896,15 @@ export function CharacterStage() {
                 src={
                   displayImage
                 }
-
                 alt={
-                  tryOnResult
-                    ? `${activeMember.name} virtual try-on`
-                    : standingPhoto
-                      ? `${activeMember.name} uploaded photo`
-                      : `${activeMember.name} RPG character`
+                  standingPhotoCutoutUrl
+                    ? `${activeMember.name} prepared festive character`
+                    : tryOnResult
+                      ? `${activeMember.name} virtual try-on`
+                      : standingPhoto
+                        ? `${activeMember.name} uploaded photo`
+                        : `${activeMember.name} RPG character`
                 }
-
                 className={
                   isUserImage
                     ? "h-[585px] w-auto max-w-none translate-y-[25px] object-contain object-bottom drop-shadow-[0_28px_32px_rgba(0,0,0,0.72)]"
@@ -554,7 +937,6 @@ export function CharacterStage() {
 
                 <label
                   className="mt-3 inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-[10px] tracking-[0.15em] text-primary-foreground uppercase"
-
                   style={{
                     background:
                       "var(--gradient-gold)",
@@ -567,11 +949,8 @@ export function CharacterStage() {
 
                   <input
                     type="file"
-
                     accept="image/jpeg,image/png"
-
                     className="hidden"
-
                     onChange={(event) =>
                       handlePhotoUpload(
                         event.target
@@ -604,25 +983,76 @@ export function CharacterStage() {
               </div>
             )}
 
-          {/* VTO RESULT */}
+          {/* VTO / PREPARE CHARACTER */}
 
           {tryOnResult && (
-            <div className="absolute bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-lg border border-gold/50 bg-background/90 px-5 py-2 text-center">
+            <div className="absolute bottom-5 left-1/2 z-30 w-[min(420px,calc(100%-40px))] -translate-x-1/2 rounded-xl border border-gold/50 bg-background/90 px-4 py-3 text-center shadow-2xl backdrop-blur-md">
 
-              <p className="text-[10px] text-gold uppercase">
-                ✨ Virtual Try-On
-              </p>
+              {standingPhotoCutoutUrl ? (
+                <>
+                  <p className="text-[10px] font-semibold tracking-[0.12em] text-gold uppercase">
+                    ✨ Character Ready
+                  </p>
 
-              <p className="mt-1 text-xs">
-                {
-                  tryOnResult.itemName
-                }
-              </p>
+                  <p className="mt-1 text-[9px] text-muted-foreground">
+                    Background removed with YouCam
+                  </p>
+
+                  <p className="mt-1 text-xs">
+                    {tryOnResult.itemName}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] text-gold uppercase">
+                    ✨ Virtual Try-On Ready
+                  </p>
+
+                  <p className="mt-1 text-xs">
+                    {tryOnResult.itemName}
+                  </p>
+
+                  {tryOnMatchesEquippedOutfit ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={
+                          preparingCharacter
+                        }
+                        onClick={() =>
+                          void prepareCharacter()
+                        }
+                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-gold/50 bg-gold/10 px-4 py-2 text-[9px] font-semibold tracking-[0.1em] text-gold uppercase transition-all hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {preparingCharacter ? (
+                          <>
+                            <Loader2 className="size-3.5 animate-spin" />
+                            Removing Background...
+                          </>
+                        ) : (
+                          <>
+                            <WandSparkles className="size-3.5" />
+                            Prepare Character
+                          </>
+                        )}
+                      </button>
+
+                      <p className="mt-1 text-[8px] text-muted-foreground">
+                        Powered by YouCam Background Removal
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-[8px] text-muted-foreground">
+                      Equip this previewed outfit to prepare your RPG character.
+                    </p>
+                  )}
+                </>
+              )}
 
             </div>
           )}
 
-          {/* ERROR */}
+          {/* PHOTO ERROR */}
 
           {photoError && (
             <div className="absolute left-1/2 top-20 z-50 flex max-w-[85%] -translate-x-1/2 items-center gap-2 rounded-lg border border-red-500/40 bg-red-950/95 px-3 py-2 text-[10px] text-red-200">
@@ -631,9 +1061,29 @@ export function CharacterStage() {
 
               <button
                 type="button"
-
                 onClick={() =>
                   setPhotoError(
+                    null,
+                  )
+                }
+              >
+                <X className="size-4" />
+              </button>
+
+            </div>
+          )}
+
+          {/* CHARACTER ERROR */}
+
+          {characterError && (
+            <div className="absolute left-1/2 top-20 z-50 flex max-w-[88%] -translate-x-1/2 items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-950/95 px-3 py-2 text-[10px] text-amber-100">
+
+              {characterError}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setCharacterError(
                     null,
                   )
                 }
@@ -652,7 +1102,6 @@ export function CharacterStage() {
 
           <button
             type="button"
-
             className="flex items-center gap-2 rounded-full border border-gold/40 bg-secondary/40 px-4 py-2 text-xs tracking-[0.14em] uppercase opacity-60"
           >
             <RotateCw className="size-4" />
@@ -662,11 +1111,9 @@ export function CharacterStage() {
 
           <button
             type="button"
-
             onClick={
               handleZoom
             }
-
             className="flex items-center gap-2 rounded-full border border-gold/40 bg-secondary/40 px-4 py-2 text-xs tracking-[0.14em] uppercase transition-all hover:border-gold hover:text-gold"
           >
             <ZoomIn className="size-4" />
@@ -676,11 +1123,9 @@ export function CharacterStage() {
 
           <button
             type="button"
-
             onClick={
               resetView
             }
-
             className="flex items-center gap-2 rounded-full border border-gold/40 bg-secondary/40 px-4 py-2 text-xs tracking-[0.14em] uppercase transition-all hover:border-gold hover:text-gold"
           >
             <Undo2 className="size-4" />
@@ -696,13 +1141,10 @@ export function CharacterStage() {
 
           <button
             type="button"
-
             onClick={
               handleFinalize
             }
-
             className="w-full max-w-md rounded-lg px-8 py-3.5 font-display text-sm tracking-[0.2em] text-primary-foreground uppercase transition-transform hover:scale-[1.01]"
-
             style={{
               background:
                 "var(--gradient-gold)",
@@ -759,13 +1201,11 @@ export function CharacterStage() {
 
             <button
               type="button"
-
               onClick={() =>
                 setShowFinalLook(
                   false,
                 )
               }
-
               className="absolute right-4 top-4 z-30 flex size-9 items-center justify-center rounded-full border border-gold/40 bg-background/90 text-gold transition-colors hover:border-gold"
               aria-label="Close final look"
             >
@@ -835,9 +1275,7 @@ export function CharacterStage() {
                       src={
                         displayImage
                       }
-
                       alt={`${activeMember.name} final festive look`}
-
                       className="max-h-[520px] w-auto max-w-full object-contain object-bottom drop-shadow-[0_30px_40px_rgba(0,0,0,0.75)]"
                     />
 
@@ -845,9 +1283,11 @@ export function CharacterStage() {
 
                   <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/40 bg-background/85 px-4 py-2 text-[9px] tracking-[0.15em] text-gold uppercase backdrop-blur-md">
 
-                    {tryOnResult
-                      ? "AI Virtual Try-On Look"
-                      : "Original Festive Look"}
+                    {standingPhotoCutoutUrl
+                      ? "Prepared RPG Character"
+                      : tryOnResult
+                        ? "AI Virtual Try-On Look"
+                        : "Original Festive Look"}
 
                   </div>
 
@@ -961,7 +1401,6 @@ export function CharacterStage() {
                         ]) => (
                           <div
                             key={`${slot}-${item.id}`}
-
                             className="flex items-center gap-3 rounded-lg border border-gold/15 bg-background/30 p-2.5"
                           >
 
@@ -970,11 +1409,9 @@ export function CharacterStage() {
                                 src={
                                   item.image
                                 }
-
                                 alt={
                                   item.name
                                 }
-
                                 className="size-12 rounded-md border border-gold/20 object-cover"
                               />
                             ) : (
@@ -1014,11 +1451,8 @@ export function CharacterStage() {
                                 href={
                                   item.productUrl
                                 }
-
                                 target="_blank"
-
                                 rel="noreferrer"
-
                                 className="rounded-md border border-gold/30 px-2.5 py-1.5 text-[8px] tracking-[0.1em] text-gold uppercase hover:border-gold"
                               >
                                 View
@@ -1043,8 +1477,6 @@ export function CharacterStage() {
 
                     <div className="grid grid-cols-2 gap-x-4 gap-y-3">
 
-                      {/* OUTFIT */}
-
                       {equippedItems.outfit && (
                         <div>
 
@@ -1067,8 +1499,6 @@ export function CharacterStage() {
 
                         </div>
                       )}
-
-                      {/* JEWELLERY */}
 
                       {hasJewellery && (
                         <div>
@@ -1093,8 +1523,6 @@ export function CharacterStage() {
                         </div>
                       )}
 
-                      {/* SHOES */}
-
                       {equippedItems.shoes && (
                         <div>
 
@@ -1117,8 +1545,6 @@ export function CharacterStage() {
 
                         </div>
                       )}
-
-                      {/* ACCESSORY */}
 
                       {equippedItems.accessory && (
                         <div>
@@ -1156,11 +1582,15 @@ export function CharacterStage() {
                     </p>
 
                     <p className="mt-2 font-display text-lg tracking-[0.14em] text-gold uppercase">
-                      Outfit Equipped ✓
+                      {standingPhotoCutoutUrl
+                        ? "Character Prepared ✓"
+                        : "Outfit Equipped ✓"}
                     </p>
 
                     <p className="mt-1 text-[9px] text-muted-foreground">
-                      Ready for Festive Ready Score
+                      {standingPhotoCutoutUrl
+                        ? "Ready for the Festive Squad and Wish Studio"
+                        : "Ready for Festive Ready Score"}
                     </p>
 
                   </div>
@@ -1175,15 +1605,12 @@ export function CharacterStage() {
 
                 <button
                   type="button"
-
                   onClick={() =>
                     setShowFinalLook(
                       false,
                     )
                   }
-
                   className="rounded-lg px-8 py-3 font-display text-xs tracking-[0.16em] text-primary-foreground uppercase"
-
                   style={{
                     background:
                       "var(--gradient-gold)",

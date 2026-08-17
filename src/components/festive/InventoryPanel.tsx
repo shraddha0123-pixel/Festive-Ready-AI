@@ -15,9 +15,9 @@ import {
 
 import { useFestive } from "./FestiveContext";
 
-/*
- * FILTER OPTIONS
- */
+/* =========================================================
+   FILTER OPTIONS
+   ========================================================= */
 
 const styles = [
   "All Styles",
@@ -52,11 +52,10 @@ type ProductFilterMeta = {
   colors: string[];
 };
 
-const productFilterMeta: Record<string, ProductFilterMeta> = {
-  /*
-   * WOMEN
-   */
-
+const productFilterMeta: Record<
+  string,
+  ProductFilterMeta
+> = {
   "banarasi-lehenga": {
     styles: [
       "Royal Traditional",
@@ -120,10 +119,6 @@ const productFilterMeta: Record<string, ProductFilterMeta> = {
     colors: [],
   },
 
-  /*
-   * MEN
-   */
-
   "sonisha-kurta-pajama": {
     styles: [
       "Royal Traditional",
@@ -149,10 +144,6 @@ const productFilterMeta: Record<string, ProductFilterMeta> = {
     colors: [],
   },
 
-  /*
-   * KIDS
-   */
-
   "kids-red-gold-lehenga": {
     styles: [
       "Cute Traditional",
@@ -164,10 +155,6 @@ const productFilterMeta: Record<string, ProductFilterMeta> = {
       "Bright Colours",
     ],
   },
-
-  /*
-   * TEMP PRODUCTS
-   */
 
   "2": {
     styles: [
@@ -204,19 +191,22 @@ const productFilterMeta: Record<string, ProductFilterMeta> = {
   },
 };
 
-/*
- * PRICE
- */
+/* =========================================================
+   PRICE
+   ========================================================= */
 
-function getNumericPrice(price: string) {
+function getNumericPrice(
+  price: string,
+) {
   if (!price.includes("₹")) {
     return null;
   }
 
-  const numeric = price.replace(
-    /[^0-9]/g,
-    "",
-  );
+  const numeric =
+    price.replace(
+      /[^0-9]/g,
+      "",
+    );
 
   if (!numeric) {
     return null;
@@ -225,23 +215,39 @@ function getNumericPrice(price: string) {
   return Number(numeric);
 }
 
-/*
- * YOUCAM CACHE
- */
+/* =========================================================
+   YOUCAM CACHE
+   ========================================================= */
 
 type CachedTryOnResult = {
   url: string;
   itemName: string;
+  savedAt?: number;
 };
 
 const TRY_ON_CACHE_KEY =
+  "festive-ready-ai-vto-cache-v2";
+
+/*
+ * We intentionally use a new cache key.
+ *
+ * v1 may contain old YouCam URLs from the
+ * previous implementation.
+ */
+const OLD_TRY_ON_CACHE_KEY =
   "festive-ready-ai-vto-cache-v1";
+
+const TRY_ON_CACHE_MAX_AGE =
+  15 * 60 * 1000;
 
 function readTryOnCache(): Record<
   string,
   CachedTryOnResult
 > {
-  if (typeof window === "undefined") {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
     return {};
   }
 
@@ -255,36 +261,36 @@ function readTryOnCache(): Record<
       return {};
     }
 
-    return JSON.parse(saved);
+    return JSON.parse(
+      saved,
+    ) as Record<
+      string,
+      CachedTryOnResult
+    >;
   } catch {
     return {};
   }
 }
 
-function getCachedTryOn(
-  cacheKey: string,
+function saveTryOnCache(
+  cache: Record<
+    string,
+    CachedTryOnResult
+  >,
 ) {
-  const cache = readTryOnCache();
-
-  return cache[cacheKey] ?? null;
-}
-
-function saveCachedTryOn(
-  cacheKey: string,
-  result: CachedTryOnResult,
-) {
-  if (typeof window === "undefined") {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
     return;
   }
 
   try {
-    const cache = readTryOnCache();
-
-    cache[cacheKey] = result;
-
     window.sessionStorage.setItem(
       TRY_ON_CACHE_KEY,
-      JSON.stringify(cache),
+      JSON.stringify(
+        cache,
+      ),
     );
   } catch (error) {
     console.error(
@@ -294,23 +300,228 @@ function saveCachedTryOn(
   }
 }
 
-/*
- * INVENTORY PANEL
- */
+function getCachedTryOn(
+  cacheKey: string,
+) {
+  const cache =
+    readTryOnCache();
+
+  return (
+    cache[cacheKey] ??
+    null
+  );
+}
+
+function saveCachedTryOn(
+  cacheKey: string,
+  result: CachedTryOnResult,
+) {
+  const cache =
+    readTryOnCache();
+
+  cache[cacheKey] =
+    result;
+
+  saveTryOnCache(
+    cache,
+  );
+}
+
+function removeCachedTryOn(
+  cacheKey: string,
+) {
+  const cache =
+    readTryOnCache();
+
+  delete cache[
+    cacheKey
+  ];
+
+  saveTryOnCache(
+    cache,
+  );
+}
+
+function clearOldCacheOnce() {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(
+      OLD_TRY_ON_CACHE_KEY,
+    );
+  } catch {
+    // Safe to ignore.
+  }
+}
+
+/* =========================================================
+   IMAGE URL VALIDATION
+
+   Important:
+   YouCam may return a temporary image URL.
+
+   Before showing a cached or freshly generated URL,
+   confirm that the browser can actually render it.
+   ========================================================= */
+
+function canLoadImage(
+  url: string,
+  timeoutMs = 7000,
+) {
+  return new Promise<boolean>(
+    (resolve) => {
+      const image =
+        new Image();
+
+      let finished =
+        false;
+
+      const finish = (
+        result: boolean,
+      ) => {
+        if (finished) {
+          return;
+        }
+
+        finished =
+          true;
+
+        window.clearTimeout(
+          timeout,
+        );
+
+        image.onload =
+          null;
+
+        image.onerror =
+          null;
+
+        resolve(
+          result,
+        );
+      };
+
+      const timeout =
+        window.setTimeout(
+          () => {
+            finish(false);
+          },
+          timeoutMs,
+        );
+
+      image.onload =
+        () => {
+          finish(true);
+        };
+
+      image.onerror =
+        () => {
+          finish(false);
+        };
+
+      /*
+       * Do NOT set crossOrigin here.
+       *
+       * We only need to know whether a normal <img>
+       * element can display the returned URL.
+       */
+      image.src =
+        url;
+    },
+  );
+}
+
+function wait(
+  milliseconds: number,
+) {
+  return new Promise<void>(
+    (resolve) => {
+      window.setTimeout(
+        resolve,
+        milliseconds,
+      );
+    },
+  );
+}
+
+async function waitForGeneratedImage(
+  url: string,
+) {
+  /*
+   * Sometimes a newly generated file takes
+   * a moment to become available after the
+   * API task reports success.
+   */
+
+  for (
+    let attempt = 0;
+    attempt < 3;
+    attempt += 1
+  ) {
+    const loadable =
+      await canLoadImage(
+        url,
+        7000,
+      );
+
+    if (loadable) {
+      return true;
+    }
+
+    if (
+      attempt < 2
+    ) {
+      await wait(
+        1200 *
+          (attempt + 1),
+      );
+    }
+  }
+
+  return false;
+}
+
+/* =========================================================
+   INVENTORY PANEL
+   ========================================================= */
 
 export function InventoryPanel() {
-  const [active, setActive] =
-    useState<Category>("Outfits");
+  /*
+   * Remove old v1 cache immediately.
+   *
+   * Safe because the actual VTO result still comes
+   * from the real YouCam server route.
+   */
+  clearOldCacheOnce();
+
+  const [
+    active,
+    setActive,
+  ] =
+    useState<Category>(
+      "Outfits",
+    );
 
   const [
     tryingOnItemId,
     setTryingOnItemId,
-  ] = useState<string | null>(null);
+  ] =
+    useState<string | null>(
+      null,
+    );
 
   const [
     tryOnError,
     setTryOnError,
-  ] = useState<string | null>(null);
+  ] =
+    useState<string | null>(
+      null,
+    );
 
   const {
     activeMember,
@@ -322,199 +533,204 @@ export function InventoryPanel() {
     isItemEquipped,
   } = useFestive();
 
-  /*
-   * BUDGET
-   */
+  /* =======================================================
+     BUDGET
+     ======================================================= */
 
   const currentBudget =
     active === "Outfits"
-      ? activeMember.preference
+      ? activeMember
+          .preference
           ?.outfitBudget
-      : active === "Jewellery"
-        ? activeMember.preference
+      : active ===
+          "Jewellery"
+        ? activeMember
+            .preference
             ?.jewelleryBudget
-        : active === "Shoes"
-          ? activeMember.preference
+        : active ===
+            "Shoes"
+          ? activeMember
+              .preference
               ?.shoesBudget
-          : activeMember.preference
+          : activeMember
+              .preference
               ?.accessoryBudget;
 
-  /*
-   * STYLE
-   */
+  /* =======================================================
+     STYLE
+     ======================================================= */
 
   const currentStyle =
-    activeMember.preference?.style &&
+    activeMember
+      .preference
+      ?.style &&
     styles.includes(
-      activeMember.preference.style,
+      activeMember
+        .preference.style,
     )
-      ? activeMember.preference.style
+      ? activeMember
+          .preference.style
       : "All Styles";
 
-  /*
-   * COLOUR
-   */
+  /* =======================================================
+     COLOUR
+     ======================================================= */
 
   const currentColor =
-    activeMember.preference?.color &&
+    activeMember
+      .preference
+      ?.color &&
     colors.includes(
-      activeMember.preference.color,
+      activeMember
+        .preference.color,
     )
-      ? activeMember.preference.color
+      ? activeMember
+          .preference.color
       : "All Colours";
 
-  /*
-   * EXACT MEMBER COLLECTION CHECK
-   */
+  /* =======================================================
+     EXACT MEMBER COLLECTION CHECK
+     ======================================================= */
 
   const hasExactMemberOutfits =
-    items.some((item) => {
-      if (
-        item.category !== "Outfits"
-      ) {
-        return false;
-      }
+    items.some(
+      (item) => {
+        if (
+          item.category !==
+          "Outfits"
+        ) {
+          return false;
+        }
 
-      if (
-        item.ageGroup !==
-        activeMember.ageGroup
-      ) {
-        return false;
-      }
+        if (
+          item.ageGroup !==
+          activeMember.ageGroup
+        ) {
+          return false;
+        }
 
-      const memberGender =
-        activeMember.genderFit;
-
-      if (
-        memberGender !== "female" &&
-        memberGender !== "male"
-      ) {
-        return true;
-      }
-
-      return (
-        !item.genderFit ||
-        item.genderFit === "unisex" ||
-        item.genderFit ===
-          memberGender
-      );
-    });
-
-  /*
-   * FILTER PRODUCTS
-   */
-
-  const visible =
-    items.filter((item) => {
-      /*
-       * CATEGORY
-       */
-
-      if (
-        item.category !== active
-      ) {
-        return false;
-      }
-
-      /*
-       * MEMBER FILTER
-       */
-
-      if (
-        active === "Outfits"
-      ) {
         const memberGender =
           activeMember.genderFit;
 
-        /*
-         * GENDER
-         */
-
         if (
-          (memberGender === "female" ||
-            memberGender === "male") &&
-          item.genderFit &&
-          item.genderFit !== "unisex" &&
-          item.genderFit !==
+          memberGender !==
+            "female" &&
+          memberGender !==
+            "male"
+        ) {
+          return true;
+        }
+
+        return (
+          !item.genderFit ||
+          item.genderFit ===
+            "unisex" ||
+          item.genderFit ===
             memberGender
+        );
+      },
+    );
+
+  /* =======================================================
+     FILTER PRODUCTS
+     ======================================================= */
+
+  const visible =
+    items.filter(
+      (item) => {
+        if (
+          item.category !==
+          active
         ) {
           return false;
         }
-
-        /*
-         * AGE
-         */
 
         if (
-          hasExactMemberOutfits &&
-          item.ageGroup &&
-          item.ageGroup !==
-            activeMember.ageGroup
+          active ===
+          "Outfits"
+        ) {
+          const memberGender =
+            activeMember.genderFit;
+
+          if (
+            (
+              memberGender ===
+                "female" ||
+              memberGender ===
+                "male"
+            ) &&
+            item.genderFit &&
+            item.genderFit !==
+              "unisex" &&
+            item.genderFit !==
+              memberGender
+          ) {
+            return false;
+          }
+
+          if (
+            hasExactMemberOutfits &&
+            item.ageGroup &&
+            item.ageGroup !==
+              activeMember.ageGroup
+          ) {
+            return false;
+          }
+        }
+
+        const itemPrice =
+          getNumericPrice(
+            item.price,
+          );
+
+        if (
+          itemPrice !==
+            null &&
+          currentBudget &&
+          itemPrice >
+            currentBudget
         ) {
           return false;
         }
-      }
 
-      /*
-       * BUDGET
-       */
+        const meta =
+          productFilterMeta[
+            item.id
+          ];
 
-      const itemPrice =
-        getNumericPrice(
-          item.price,
-        );
+        if (
+          currentStyle !==
+            "All Styles" &&
+          meta &&
+          meta.styles
+            .length > 0 &&
+          !meta.styles.includes(
+            currentStyle,
+          )
+        ) {
+          return false;
+        }
 
-      if (
-        itemPrice !== null &&
-        currentBudget &&
-        itemPrice > currentBudget
-      ) {
-        return false;
-      }
+        if (
+          currentColor !==
+            "All Colours" &&
+          meta &&
+          meta.colors
+            .length > 0 &&
+          !meta.colors.includes(
+            currentColor,
+          )
+        ) {
+          return false;
+        }
 
-      const meta =
-        productFilterMeta[
-          item.id
-        ];
+        return true;
+      },
+    );
 
-      /*
-       * STYLE
-       */
-
-      if (
-        currentStyle !==
-          "All Styles" &&
-        meta &&
-        meta.styles.length > 0 &&
-        !meta.styles.includes(
-          currentStyle,
-        )
-      ) {
-        return false;
-      }
-
-      /*
-       * COLOUR
-       */
-
-      if (
-        currentColor !==
-          "All Colours" &&
-        meta &&
-        meta.colors.length > 0 &&
-        !meta.colors.includes(
-          currentColor,
-        )
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-
-  /*
-   * BUDGET CHANGE
-   */
+  /* =======================================================
+     BUDGET CHANGE
+     ======================================================= */
 
   function handleBudgetChange(
     value: number,
@@ -530,17 +746,20 @@ export function InventoryPanel() {
     };
 
     if (
-      active === "Outfits"
+      active ===
+      "Outfits"
     ) {
       nextPreference.outfitBudget =
         value;
     } else if (
-      active === "Jewellery"
+      active ===
+      "Jewellery"
     ) {
       nextPreference.jewelleryBudget =
         value;
     } else if (
-      active === "Shoes"
+      active ===
+      "Shoes"
     ) {
       nextPreference.shoesBudget =
         value;
@@ -554,9 +773,9 @@ export function InventoryPanel() {
     );
   }
 
-  /*
-   * EQUIP
-   */
+  /* =======================================================
+     EQUIP
+     ======================================================= */
 
   function handleEquip(
     item: Item,
@@ -569,21 +788,24 @@ export function InventoryPanel() {
       price: item.price,
 
       productUrl:
-        item.productUrl ?? "",
+        item.productUrl ??
+        "",
 
       category:
         item.category,
     });
   }
 
-  /*
-   * TRY ON
-   */
+  /* =======================================================
+     TRY ON
+     ======================================================= */
 
   async function handleTryOn(
     item: Item,
   ) {
-    setTryOnError(null);
+    setTryOnError(
+      null,
+    );
 
     if (
       item.category !==
@@ -596,7 +818,9 @@ export function InventoryPanel() {
       return;
     }
 
-    if (!standingPhoto) {
+    if (
+      !standingPhoto
+    ) {
       setTryOnError(
         "Upload your standing photo in the Dressing Chamber first.",
       );
@@ -604,7 +828,9 @@ export function InventoryPanel() {
       return;
     }
 
-    if (!item.tryOnImage) {
+    if (
+      !item.tryOnImage
+    ) {
       setTryOnError(
         "This product does not have a Try-On reference image yet.",
       );
@@ -613,8 +839,17 @@ export function InventoryPanel() {
     }
 
     /*
-     * PHOTO FINGERPRINT
+     * Important:
+     * Clear the previous preview before starting
+     * a new request.
+     *
+     * This prevents the tutorial from treating
+     * an older preview as the new result.
      */
+
+    setTryOnResult(
+      null,
+    );
 
     const photoFingerprint = [
       standingPhoto.name,
@@ -630,36 +865,80 @@ export function InventoryPanel() {
       item.tryOnImage,
     ].join("::");
 
-    /*
-     * CACHE FIRST
-     */
-
-    const cachedResult =
-      getCachedTryOn(
-        cacheKey,
-      );
-
-    if (cachedResult) {
-      console.log(
-        "Using saved Try-On result. No new YouCam request.",
-      );
-
-      setTryOnResult(
-        cachedResult,
-      );
-
-      return;
-    }
-
-    /*
-     * CALL YOUCAM
-     */
-
     setTryingOnItemId(
       item.id,
     );
 
     try {
+      /* =====================================================
+         CHECK CACHE
+         ===================================================== */
+
+      const cachedResult =
+        getCachedTryOn(
+          cacheKey,
+        );
+
+      if (
+        cachedResult
+      ) {
+        const age =
+          cachedResult.savedAt
+            ? Date.now() -
+              cachedResult.savedAt
+            : Number.POSITIVE_INFINITY;
+
+        const fresh =
+          age <
+          TRY_ON_CACHE_MAX_AGE;
+
+        if (fresh) {
+          console.log(
+            "Checking saved YouCam Try-On result...",
+          );
+
+          const cachedImageWorks =
+            await canLoadImage(
+              cachedResult.url,
+              5000,
+            );
+
+          if (
+            cachedImageWorks
+          ) {
+            console.log(
+              "Using verified saved Try-On result. No new YouCam request.",
+            );
+
+            setTryOnResult({
+              url:
+                cachedResult.url,
+
+              itemName:
+                cachedResult.itemName,
+            });
+
+            return;
+          }
+        }
+
+        /*
+         * Old, expired or broken signed URL.
+         */
+
+        console.warn(
+          "Saved Try-On URL is unavailable. Removing cache and creating a fresh YouCam result.",
+        );
+
+        removeCachedTryOn(
+          cacheKey,
+        );
+      }
+
+      /* =====================================================
+         LOAD PRODUCT REFERENCE IMAGE
+         ===================================================== */
+
       const outfitResponse =
         await fetch(
           item.tryOnImage,
@@ -697,18 +976,10 @@ export function InventoryPanel() {
       const formData =
         new FormData();
 
-      /*
-       * USER PHOTO
-       */
-
       formData.append(
         "person",
         standingPhoto,
       );
-
-      /*
-       * PRODUCT IMAGE
-       */
 
       formData.append(
         "outfit",
@@ -716,7 +987,7 @@ export function InventoryPanel() {
       );
 
       console.log(
-        "Starting YouCam Clothes VTO...",
+        "Starting fresh YouCam Clothes VTO...",
       );
 
       console.log(
@@ -729,9 +1000,9 @@ export function InventoryPanel() {
         item.name,
       );
 
-      /*
-       * WORKING SERVER ROUTE
-       */
+      /* =====================================================
+         REAL YOUCAM SERVER ROUTE
+         ===================================================== */
 
       const response =
         await fetch(
@@ -754,7 +1025,9 @@ export function InventoryPanel() {
 
       try {
         payload =
-          JSON.parse(text);
+          JSON.parse(
+            text,
+          );
       } catch {
         throw new Error(
           `YouCam server returned invalid data: ${text.slice(
@@ -774,36 +1047,81 @@ export function InventoryPanel() {
         );
       }
 
+      console.log(
+        "YouCam task returned result URL. Verifying image...",
+      );
+
+      /*
+       * VERY IMPORTANT:
+       *
+       * Do not immediately show payload.url.
+       *
+       * First confirm the browser can actually
+       * render it. This prevents the broken-image
+       * state seen in the Dressing Chamber.
+       */
+
+      const imageWorks =
+        await waitForGeneratedImage(
+          payload.url,
+        );
+
+      if (
+        !imageWorks
+      ) {
+        throw new Error(
+          "YouCam finished generating the outfit, but the returned image could not be loaded. Please click Try On again.",
+        );
+      }
+
       const result = {
-        url: payload.url,
+        url:
+          payload.url,
+
         itemName:
           item.name,
       };
 
-      /*
-       * CACHE RESULT
-       */
+      /* =====================================================
+         CACHE VERIFIED RESULT
+         ===================================================== */
 
       saveCachedTryOn(
         cacheKey,
-        result,
+        {
+          ...result,
+          savedAt:
+            Date.now(),
+        },
       );
 
-      /*
-       * DISPLAY RESULT
-       */
+      /* =====================================================
+         DISPLAY VERIFIED RESULT
+         ===================================================== */
 
       setTryOnResult(
         result,
       );
 
       console.log(
-        "YouCam Clothes VTO successful and result cached.",
+        "YouCam Clothes VTO successful. Verified image displayed and cached.",
       );
     } catch (error) {
       console.error(
         "YouCam Try-On error:",
         error,
+      );
+
+      /*
+       * Never leave a broken URL in the chamber.
+       */
+
+      setTryOnResult(
+        null,
+      );
+
+      removeCachedTryOn(
+        cacheKey,
       );
 
       setTryOnError(
@@ -818,9 +1136,9 @@ export function InventoryPanel() {
     }
   }
 
-  /*
-   * UI
-   */
+  /* =========================================================
+     UI
+     ========================================================= */
 
   return (
     <aside className="panel-ornate flex h-[860px] flex-col gap-3 rounded-xl p-4">
@@ -863,7 +1181,8 @@ export function InventoryPanel() {
               }}
 
               className={`rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase transition-all ${
-                active === category
+                active ===
+                category
                   ? "border-gold/70 bg-secondary/70 text-gold"
                   : "border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
               }`}
@@ -906,7 +1225,8 @@ export function InventoryPanel() {
             onChange={(event) =>
               handleBudgetChange(
                 Number(
-                  event.target.value,
+                  event.target
+                    .value,
                 ),
               )
             }
@@ -931,6 +1251,7 @@ export function InventoryPanel() {
 
             updatePreference({
               ...activeMember.preference,
+
               style:
                 event.target.value,
             });
@@ -966,6 +1287,7 @@ export function InventoryPanel() {
 
             updatePreference({
               ...activeMember.preference,
+
               color:
                 event.target.value,
             });
@@ -1047,6 +1369,7 @@ export function InventoryPanel() {
                     : "border-border"
                 }`}
               >
+
                 {/* BADGE */}
 
                 {isRealProduct && (
@@ -1165,6 +1488,7 @@ export function InventoryPanel() {
                       ? "Equipped"
                       : "Equip"}
                   </button>
+
                 </div>
 
                 {/* PRODUCT LINK */}
@@ -1192,8 +1516,10 @@ export function InventoryPanel() {
 
         {/* EMPTY */}
 
-        {visible.length === 0 && (
+        {visible.length ===
+          0 && (
           <li className="rounded-lg border border-dashed border-gold/25 px-3 py-8 text-center">
+
             <p className="text-xs text-gold">
               No matching items
             </p>
@@ -1201,9 +1527,11 @@ export function InventoryPanel() {
             <p className="mt-1 text-[10px] text-muted-foreground">
               Increase your budget or try another style / colour.
             </p>
+
           </li>
         )}
       </ul>
+
     </aside>
   );
 }
