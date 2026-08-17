@@ -37,7 +37,7 @@ import { useFestive } from "./FestiveContext";
  */
 
 const TUTORIAL_COMPLETE_KEY =
-  "festive-ready-ai-tutorial-complete-v7";
+  "festive-ready-ai-tutorial-complete-v8";
 
 const TUTORIAL_NAME_KEY =
   "festive-ready-ai-tutorial-name-v1";
@@ -266,27 +266,27 @@ const tourSteps: TourStep[] = [
 
   {
     id: "wish-studio",
-    title: "Create the Family Wish",
+    title: "Your Festive Wishes",
     description:
-      "Bring prepared family characters together in a personalized festive scene.",
+      "Turn the finalized YouCam look into two ready-made festive greeting designs.",
     narration:
-      "Prepared cutouts are reused in the Wish Studio. Choose a festive background and create your personalized family greeting.",
+      "Wish Studio automatically turns your prepared look into two ready-to-share festive cards. Select either design, with no manual background setup needed.",
     tips: [
-      "Prepared cutouts can be reused from the Dressing Chamber.",
-      "Choose a festive scene for the family card.",
+      "Two finished festive designs are created automatically.",
+      "Simply select the card you want to use.",
     ],
   },
 
   {
     id: "share",
-    title: "Download & Celebrate",
+    title: "Download & Share",
     description:
-      "Export the personalized greeting and share the celebration.",
+      "Select your favorite finished card and take the celebration with you.",
     narration:
-      "Download your card or share it through WhatsApp.",
+      "Choose your favorite card, then download it or share it through WhatsApp. Each exported image includes the Festive Ready AI watermark.",
     tips: [
-      "Download the finished card.",
-      "Share the festive wish with friends and family.",
+      "Download the selected festive card.",
+      "Share it directly through WhatsApp.",
     ],
   },
 
@@ -294,9 +294,9 @@ const tourSteps: TourStep[] = [
     id: "thanks",
     title: "Thank You",
     description:
-      "A short closing card for the final demo recording.",
+      "Thank you for exploring Festive Ready AI.",
     narration:
-      "Thank you to Devpost and YouCam, and to ChatGPT, Lovable, and Visual Studio Code for helping us bring Festive Ready AI to life.",
+      "Thank you Devpost, and special thanks to YouCam for making this hackathon possible. Thanks to ChatGPT and the other tools that helped bring Festive Ready AI to life. Please subscribe to my channel and leave a heart here on Devpost.",
     tips: [],
   },
 ];
@@ -1323,7 +1323,7 @@ function getWishStudioTarget() {
       normalizeText(
         element,
       ).includes(
-        "create your wish",
+        "your festive wishes",
       ),
     );
 
@@ -1331,10 +1331,15 @@ function getWishStudioTarget() {
     return null;
   }
 
-  return (
+  const aside =
     title.closest(
       "aside",
-    ) as HTMLElement | null
+    ) as HTMLElement | null;
+
+  return (
+    aside?.parentElement ??
+    aside ??
+    overlay
   );
 }
 
@@ -1348,7 +1353,7 @@ function getShareTarget() {
 
   const download =
     findButton(
-      "Download Card",
+      "Download Selected",
       overlay,
       true,
     );
@@ -3534,7 +3539,7 @@ export function FestiveTutorial() {
         () => {
           completeTour();
         },
-        10500,
+        13500,
       );
 
     return () => {
@@ -3874,11 +3879,11 @@ export function FestiveTutorial() {
             </h2>
 
             <p className="mt-2 text-[10px] tracking-[0.2em] text-gold/80 uppercase">
-              Plan • Try • Equip • Prepare • Celebrate
+              Devpost × YouCam
             </p>
 
             <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
-              Thank you to Devpost, YouCam, and the tools that helped us bring this festive journey to life.
+              Special thanks to YouCam for helping power the real Virtual Try-On and Background Removal experience behind Festive Ready AI.
             </p>
 
             <div className="mx-auto mt-7 max-w-xl rounded-2xl border border-gold/25 bg-gold/5 px-6 py-5">
@@ -3888,13 +3893,13 @@ export function FestiveTutorial() {
               </p>
 
               <p className="mt-2 text-sm text-foreground">
-                Subscribe to our channel &amp; leave us a ❤️ on Devpost
+                Subscribe to my channel &amp; leave a ❤️ here on Devpost
               </p>
 
             </div>
 
             <p className="mt-6 text-[10px] tracking-[0.14em] text-muted-foreground">
-              YouCam • ChatGPT • Lovable • Visual Studio Code
+              ChatGPT • Lovable • VS Code • GitHub • AI Tools
             </p>
 
             <div className="mt-7 flex items-center justify-center gap-2">
@@ -3923,7 +3928,7 @@ export function FestiveTutorial() {
             </div>
 
             <p className="mt-3 text-[9px] text-muted-foreground/70">
-              This closing card ends automatically after about 10 seconds.
+              This closing card ends automatically after about 13 seconds.
             </p>
 
           </div>
@@ -4637,7 +4642,7 @@ export function FestiveTutorial() {
               <WandSparkles className="mt-0.5 size-3.5 shrink-0 text-gold" />
 
               <p className="text-[9px] leading-4 text-muted-foreground">
-                Reuse prepared cutouts → prepare only missing members → choose a scene → create the greeting.
+                Prepared YouCam cutouts are reused automatically → two ready-made festive cards → select one → download or share.
               </p>
 
             </div>
