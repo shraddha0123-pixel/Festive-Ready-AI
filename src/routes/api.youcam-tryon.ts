@@ -1,6 +1,3 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-
 import { createFileRoute } from "@tanstack/react-router";
 
 const YOUCAM_BASE_URL =
@@ -46,6 +43,12 @@ type TaskResultResponse = {
     };
   };
 };
+
+/*
+ * ============================================================
+ * IMAGE HELPERS
+ * ============================================================
+ */
 
 function normaliseContentType(
   file: File,
@@ -110,6 +113,12 @@ function readableError(
     return "Unknown YouCam error";
   }
 }
+
+/*
+ * ============================================================
+ * UPLOAD FILE TO YOUCAM
+ * ============================================================
+ */
 
 async function uploadFileToYouCam(
   file: File,
@@ -265,6 +274,12 @@ async function uploadFileToYouCam(
   return uploadedFile.file_id;
 }
 
+/*
+ * ============================================================
+ * CREATE TRY-ON TASK
+ * ============================================================
+ */
+
 async function createTryOnTask(
   personFileId: string,
   outfitFileId: string,
@@ -332,6 +347,12 @@ async function createTryOnTask(
   return taskId;
 }
 
+/*
+ * ============================================================
+ * WAIT
+ * ============================================================
+ */
+
 function wait(
   milliseconds: number,
 ) {
@@ -343,6 +364,12 @@ function wait(
       ),
   );
 }
+
+/*
+ * ============================================================
+ * WAIT FOR TRY-ON RESULT
+ * ============================================================
+ */
 
 async function waitForTryOnResult(
   taskId: string,
@@ -437,101 +464,9 @@ async function waitForTryOnResult(
 
 /*
  * ============================================================
- * SAVE RESULT LOCALLY
- *
- * YouCam result URLs can later become unavailable.
- * We immediately copy the completed VTO image into:
- *
- * public/generated-vto/
- *
- * Then the app stores our stable local URL instead.
+ * ROUTE
  * ============================================================
  */
-
-async function saveTryOnResultLocally(
-  resultUrl: string,
-  taskId: string,
-) {
-  console.log(
-    "YouCam: saving VTO result locally...",
-  );
-
-  const response =
-    await fetch(resultUrl);
-
-  if (!response.ok) {
-    throw new Error(
-      `Could not save completed VTO image (${response.status}).`,
-    );
-  }
-
-  const contentType =
-    response.headers
-      .get("content-type")
-      ?.toLowerCase() ?? "";
-
-  const extension =
-    contentType.includes("png")
-      ? "png"
-      : "jpg";
-
-  const safeTaskId =
-    taskId.replace(
-      /[^a-zA-Z0-9_-]/g,
-      "",
-    );
-
-  const fileName =
-    `${safeTaskId}.${extension}`;
-
-  const publicDirectory =
-    path.join(
-      process.cwd(),
-      "public",
-      "generated-vto",
-    );
-
-  await mkdir(
-    publicDirectory,
-    {
-      recursive: true,
-    },
-  );
-
-  const filePath =
-    path.join(
-      publicDirectory,
-      fileName,
-    );
-
-  const bytes =
-    Buffer.from(
-      await response.arrayBuffer(),
-    );
-
-  if (
-    bytes.length === 0
-  ) {
-    throw new Error(
-      "Completed VTO image was empty.",
-    );
-  }
-
-  await writeFile(
-    filePath,
-    bytes,
-  );
-
-  console.log(
-    `YouCam: VTO saved locally as ${fileName}`,
-  );
-
-  return {
-    fileName,
-    relativeUrl:
-      `/generated-vto/${fileName}`,
-  };
-}
 
 export const Route =
   createFileRoute(
@@ -555,14 +490,20 @@ export const Route =
             if (!apiKey) {
               return Response.json(
                 {
+                  success: false,
+
                   error:
-                    "YOUCAM_API_KEY is missing. Check .env.local and restart the dev server.",
+                    "YOUCAM_API_KEY is missing in the server environment.",
                 },
                 {
                   status: 500,
                 },
               );
             }
+
+            /*
+             * Read uploaded images.
+             */
 
             const formData =
               await request.formData();
@@ -585,6 +526,8 @@ export const Route =
             ) {
               return Response.json(
                 {
+                  success: false,
+
                   error:
                     "Standing person photo was not received.",
                 },
@@ -602,6 +545,8 @@ export const Route =
             ) {
               return Response.json(
                 {
+                  success: false,
+
                   error:
                     "Outfit reference image was not received.",
                 },
@@ -610,6 +555,10 @@ export const Route =
                 },
               );
             }
+
+            /*
+             * Validate.
+             */
 
             validateImage(
               person,
@@ -621,6 +570,10 @@ export const Route =
               "Outfit",
             );
 
+            /*
+             * Upload person.
+             */
+
             console.log(
               "YouCam: uploading person photo...",
             );
@@ -631,6 +584,10 @@ export const Route =
                 apiKey,
               );
 
+            /*
+             * Upload outfit.
+             */
+
             console.log(
               "YouCam: uploading outfit...",
             );
@@ -640,6 +597,10 @@ export const Route =
                 outfit,
                 apiKey,
               );
+
+            /*
+             * Create VTO.
+             */
 
             console.log(
               "YouCam: creating VTO task...",
@@ -656,6 +617,10 @@ export const Route =
               `YouCam: task created ${taskId}`,
             );
 
+            /*
+             * Wait for real YouCam result.
+             */
+
             const resultUrl =
               await waitForTryOnResult(
                 taskId,
@@ -666,47 +631,34 @@ export const Route =
               "YouCam: VTO completed.",
             );
 
-            /*
-             * IMPORTANT:
-             * Copy the result immediately,
-             * while the YouCam URL is still valid.
-             */
-
-            const saved =
-              await saveTryOnResultLocally(
-                resultUrl,
-                taskId,
-              );
-
-            /*
-             * Build URL using the same host
-             * the user currently opened.
-             */
-
-            const requestUrl =
-              new URL(
-                request.url,
-              );
-
-            const stableUrl =
-              `${requestUrl.origin}${saved.relativeUrl}`;
-
             console.log(
-              `YouCam: stable VTO URL ${stableUrl}`,
+              "YouCam: returning generated result directly.",
             );
 
-            return Response.json({
-              success: true,
+            /*
+             * IMPORTANT FOR VERCEL
+             *
+             * Do NOT write generated images into /public.
+             * The frontend already expects a field called "url",
+             * so no InventoryPanel or CharacterStage change
+             * is required.
+             */
 
-              taskId,
+            return Response.json(
+              {
+                success: true,
 
-              /*
-               * The frontend already expects "url".
-               * So no frontend code change needed.
-               */
+                taskId,
 
-              url: stableUrl,
-            });
+                url: resultUrl,
+              },
+              {
+                headers: {
+                  "Cache-Control":
+                    "no-store",
+                },
+              },
+            );
           } catch (error) {
             console.error(
               "YouCam VTO error:",
