@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiGenerateFestiveReelRouteImport } from './routes/api.generate-festive-reel'
 import { Route as ApiYoucamRemoveBgRouteImport } from './routes/api.youcam-remove-bg'
 import { Route as ApiYoucamTryonRouteImport } from './routes/api.youcam-tryon'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGenerateFestiveReelRoute = ApiGenerateFestiveReelRouteImport.update({
+  id: '/api/generate-festive-reel',
+  path: '/api/generate-festive-reel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiYoucamRemoveBgRoute = ApiYoucamRemoveBgRouteImport.update({
@@ -31,30 +37,47 @@ const ApiYoucamTryonRoute = ApiYoucamTryonRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/generate-festive-reel': typeof ApiGenerateFestiveReelRoute
   '/api/youcam-remove-bg': typeof ApiYoucamRemoveBgRoute
   '/api/youcam-tryon': typeof ApiYoucamTryonRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/generate-festive-reel': typeof ApiGenerateFestiveReelRoute
   '/api/youcam-remove-bg': typeof ApiYoucamRemoveBgRoute
   '/api/youcam-tryon': typeof ApiYoucamTryonRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/generate-festive-reel': typeof ApiGenerateFestiveReelRoute
   '/api/youcam-remove-bg': typeof ApiYoucamRemoveBgRoute
   '/api/youcam-tryon': typeof ApiYoucamTryonRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/youcam-remove-bg' | '/api/youcam-tryon'
+  fullPaths:
+    | '/'
+    | '/api/generate-festive-reel'
+    | '/api/youcam-remove-bg'
+    | '/api/youcam-tryon'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/youcam-remove-bg' | '/api/youcam-tryon'
-  id: '__root__' | '/' | '/api/youcam-remove-bg' | '/api/youcam-tryon'
+  to:
+    | '/'
+    | '/api/generate-festive-reel'
+    | '/api/youcam-remove-bg'
+    | '/api/youcam-tryon'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/generate-festive-reel'
+    | '/api/youcam-remove-bg'
+    | '/api/youcam-tryon'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiGenerateFestiveReelRoute: typeof ApiGenerateFestiveReelRoute
   ApiYoucamRemoveBgRoute: typeof ApiYoucamRemoveBgRoute
   ApiYoucamTryonRoute: typeof ApiYoucamTryonRoute
 }
@@ -66,6 +89,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate-festive-reel': {
+      id: '/api/generate-festive-reel'
+      path: '/api/generate-festive-reel'
+      fullPath: '/api/generate-festive-reel'
+      preLoaderRoute: typeof ApiGenerateFestiveReelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/youcam-remove-bg': {
@@ -87,6 +117,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiGenerateFestiveReelRoute: ApiGenerateFestiveReelRoute,
   ApiYoucamRemoveBgRoute: ApiYoucamRemoveBgRoute,
   ApiYoucamTryonRoute: ApiYoucamTryonRoute,
 }

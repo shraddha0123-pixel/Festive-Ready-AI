@@ -3,6 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 const YOUCAM_BASE_URL =
   "https://yce-api-01.makeupar.com";
 
+const MAX_FILE_SIZE =
+  10 * 1024 * 1024;
+
 type UploadRequest = {
   method?: string;
   url?: string;
@@ -24,35 +27,49 @@ type TaskCreateResponse = {
   };
 };
 
-function getContentType(file: File) {
-  const type = file.type.toLowerCase();
+function normaliseContentType(
+  type: string,
+) {
+  const lowered =
+    type.toLowerCase();
 
   if (
-    type === "image/jpeg" ||
-    type === "image/jpg"
+    lowered === "image/jpeg" ||
+    lowered === "image/jpg"
   ) {
     return "image/jpg";
   }
 
-  if (type === "image/png") {
+  if (
+    lowered === "image/png"
+  ) {
     return "image/png";
   }
 
   throw new Error(
-    "Please upload a JPG or PNG image.",
+    "Background removal supports JPG or PNG images.",
   );
 }
 
 function wait(ms: number) {
-  return new Promise((resolve) =>
-    setTimeout(resolve, ms),
+  return new Promise(
+    (resolve) =>
+      setTimeout(
+        resolve,
+        ms,
+      ),
   );
 }
 
 function findResultUrl(
-  payload: any,
+  payload: unknown,
 ): string | undefined {
-  const data = payload?.data;
+  const data =
+    (
+      payload as {
+        data?: any;
+      }
+    )?.data;
 
   const candidates = [
     data?.results?.url,
@@ -61,54 +78,145 @@ function findResultUrl(
     data?.result?.[0]?.url,
     data?.url,
     data?.dst_url,
-    data?.results?.[0]?.dst_url,
+    data?.results?.[0]
+      ?.dst_url,
   ];
 
   return candidates.find(
     (value) =>
-      typeof value === "string" &&
+      typeof value ===
+        "string" &&
       value.length > 0,
   );
 }
 
+/*
+ * ============================================================
+ * DOWNLOAD FINALIZED VTO IMAGE
+ * ============================================================
+ */
+
+async function downloadImageFromUrl(
+  imageUrl: string,
+) {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl =
+      new URL(imageUrl);
+  } catch {
+    throw new Error(
+      "Finalized image URL is invalid.",
+    );
+  }
+
+  if (
+    parsedUrl.protocol !==
+      "https:" &&
+    parsedUrl.protocol !==
+      "http:"
+  ) {
+    throw new Error(
+      "Finalized image URL is not supported.",
+    );
+  }
+
+  const response =
+    await fetch(
+      imageUrl,
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      `Could not download finalized image (${response.status}).`,
+    );
+  }
+
+  const contentType =
+    normaliseContentType(
+      response.headers.get(
+        "content-type",
+      ) ??
+        "image/jpeg",
+    );
+
+  const bytes =
+    await response.arrayBuffer();
+
+  if (
+    bytes.byteLength <= 0
+  ) {
+    throw new Error(
+      "Finalized image is empty.",
+    );
+  }
+
+  if (
+    bytes.byteLength >
+    MAX_FILE_SIZE
+  ) {
+    throw new Error(
+      "Finalized image must be under 10 MB.",
+    );
+  }
+
+  return {
+    bytes,
+    contentType,
+    fileName:
+      contentType ===
+      "image/png"
+        ? "finalized-look.png"
+        : "finalized-look.jpg",
+  };
+}
+
+/*
+ * ============================================================
+ * UPLOAD TO YOUCAM
+ * ============================================================
+ */
+
 async function uploadPhoto(
-  file: File,
+  bytes: ArrayBuffer,
+  contentType: string,
+  fileName: string,
   apiKey: string,
 ) {
-  const contentType =
-    getContentType(file);
+  const response =
+    await fetch(
+      `${YOUCAM_BASE_URL}/s2s/v2.0/file/sod`,
+      {
+        method: "POST",
 
-  const response = await fetch(
-    `${YOUCAM_BASE_URL}/s2s/v2.0/file/sod`,
-    {
-      method: "POST",
+        headers: {
+          Authorization:
+            `Bearer ${apiKey}`,
 
-      headers: {
-        Authorization:
-          `Bearer ${apiKey}`,
-        "Content-Type":
-          "application/json",
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify({
+            files: [
+              {
+                content_type:
+                  contentType,
+
+                file_name:
+                  fileName,
+
+                file_size:
+                  bytes.byteLength,
+              },
+            ],
+          }),
       },
+    );
 
-      body: JSON.stringify({
-        files: [
-          {
-            content_type:
-              contentType,
-
-            file_name:
-              file.name ||
-              "standing-photo.jpg",
-
-            file_size:
-              file.size,
-          },
-        ],
-      }),
-    },
-  );
-
-  const text = await response.text();
+  const text =
+    await response.text();
 
   if (!response.ok) {
     throw new Error(
@@ -116,15 +224,27 @@ async function uploadPhoto(
     );
   }
 
-  const payload =
-    JSON.parse(
-      text,
-    ) as FileApiResponse;
+  let payload:
+    FileApiResponse;
+
+  try {
+    payload =
+      JSON.parse(
+        text,
+      ) as FileApiResponse;
+  } catch {
+    throw new Error(
+      "YouCam background upload returned invalid JSON.",
+    );
+  }
 
   const uploaded =
-    payload.data?.files?.[0];
+    payload.data
+      ?.files?.[0];
 
-  if (!uploaded?.file_id) {
+  if (
+    !uploaded?.file_id
+  ) {
     throw new Error(
       "YouCam did not return a file ID.",
     );
@@ -138,7 +258,9 @@ async function uploadPhoto(
     ) ??
     uploaded.requests?.[0];
 
-  if (!uploadRequest?.url) {
+  if (
+    !uploadRequest?.url
+  ) {
     throw new Error(
       "YouCam did not return an upload URL.",
     );
@@ -147,19 +269,25 @@ async function uploadPhoto(
   const headers =
     new Headers();
 
-  Object.entries(
-    uploadRequest.headers ?? {},
-  ).forEach(
-    ([key, value]) => {
-      headers.set(
-        key,
-        String(value),
-      );
-    },
-  );
+  for (
+    const [
+      key,
+      value,
+    ] of Object.entries(
+      uploadRequest.headers ??
+        {},
+    )
+  ) {
+    headers.set(
+      key,
+      String(value),
+    );
+  }
 
   if (
-    !headers.has("Content-Type")
+    !headers.has(
+      "Content-Type",
+    )
   ) {
     headers.set(
       "Content-Type",
@@ -177,41 +305,55 @@ async function uploadPhoto(
 
         headers,
 
-        body:
-          await file.arrayBuffer(),
+        body: bytes,
       },
     );
 
-  if (!uploadResponse.ok) {
+  if (
+    !uploadResponse.ok
+  ) {
+    const uploadError =
+      await uploadResponse.text();
+
     throw new Error(
-      `Image transfer failed (${uploadResponse.status}).`,
+      `Image transfer failed (${uploadResponse.status}): ${uploadError}`,
     );
   }
 
   return uploaded.file_id;
 }
 
+/*
+ * ============================================================
+ * START REMOVAL
+ * ============================================================
+ */
+
 async function startRemoval(
   fileId: string,
   apiKey: string,
 ) {
-  const response = await fetch(
-    `${YOUCAM_BASE_URL}/s2s/v2.0/task/sod`,
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      `${YOUCAM_BASE_URL}/s2s/v2.0/task/sod`,
+      {
+        method: "POST",
 
-      headers: {
-        Authorization:
-          `Bearer ${apiKey}`,
-        "Content-Type":
-          "application/json",
+        headers: {
+          Authorization:
+            `Bearer ${apiKey}`,
+
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify({
+            src_file_id:
+              fileId,
+          }),
       },
-
-      body: JSON.stringify({
-        src_file_id: fileId,
-      }),
-    },
-  );
+    );
 
   const text =
     await response.text();
@@ -222,13 +364,23 @@ async function startRemoval(
     );
   }
 
-  const payload =
-    JSON.parse(
-      text,
-    ) as TaskCreateResponse;
+  let payload:
+    TaskCreateResponse;
+
+  try {
+    payload =
+      JSON.parse(
+        text,
+      ) as TaskCreateResponse;
+  } catch {
+    throw new Error(
+      "YouCam background task returned invalid JSON.",
+    );
+  }
 
   const taskId =
-    payload.data?.task_id;
+    payload.data
+      ?.task_id;
 
   if (!taskId) {
     throw new Error(
@@ -238,6 +390,12 @@ async function startRemoval(
 
   return taskId;
 }
+
+/*
+ * ============================================================
+ * WAIT FOR RESULT
+ * ============================================================
+ */
 
 async function waitForResult(
   taskId: string,
@@ -272,18 +430,34 @@ async function waitForResult(
       );
     }
 
-    const payload =
-      JSON.parse(text);
+    let payload: any;
+
+    try {
+      payload =
+        JSON.parse(
+          text,
+        );
+    } catch {
+      throw new Error(
+        "YouCam background status returned invalid JSON.",
+      );
+    }
 
     const status =
       String(
         payload?.data
-          ?.task_status ?? "",
+          ?.task_status ??
+          "",
       ).toLowerCase();
 
-    if (status === "success") {
+    if (
+      status ===
+      "success"
+    ) {
       const url =
-        findResultUrl(payload);
+        findResultUrl(
+          payload,
+        );
 
       if (!url) {
         throw new Error(
@@ -296,12 +470,15 @@ async function waitForResult(
 
     if (
       status === "error" ||
-      status === "failed" ||
-      status === "failure"
+      status ===
+        "failed" ||
+      status ===
+        "failure"
     ) {
       throw new Error(
         `YouCam background removal error: ${JSON.stringify(
-          payload?.data?.error ??
+          payload?.data
+            ?.error ??
             payload?.data,
         )}`,
       );
@@ -312,6 +489,12 @@ async function waitForResult(
     "Background removal took too long.",
   );
 }
+
+/*
+ * ============================================================
+ * ROUTE
+ * ============================================================
+ */
 
 export const Route =
   createFileRoute(
@@ -331,6 +514,9 @@ export const Route =
             if (!apiKey) {
               return Response.json(
                 {
+                  success:
+                    false,
+
                   error:
                     "YOUCAM_API_KEY is missing.",
                 },
@@ -348,28 +534,134 @@ export const Route =
                 "person",
               );
 
-            if (
-              !(person instanceof File)
-            ) {
-              return Response.json(
-                {
-                  error:
-                    "Standing photo was not received.",
-                },
-                {
-                  status: 400,
-                },
+            const personUrlValue =
+              formData.get(
+                "personUrl",
               );
-            }
+
+            const personUrl =
+              typeof personUrlValue ===
+              "string"
+                ? personUrlValue.trim()
+                : "";
+
+            let bytes:
+              ArrayBuffer;
+
+            let contentType:
+              string;
+
+            let fileName:
+              string;
+
+            /*
+             * ====================================================
+             * OPTION 1:
+             * Direct uploaded File
+             * ====================================================
+             */
 
             if (
-              person.size >
-              10 * 1024 * 1024
+              person instanceof
+              File
             ) {
+              if (
+                person.size <=
+                0
+              ) {
+                return Response.json(
+                  {
+                    success:
+                      false,
+
+                    error:
+                      "Standing photo is empty.",
+                  },
+                  {
+                    status:
+                      400,
+                  },
+                );
+              }
+
+              if (
+                person.size >
+                MAX_FILE_SIZE
+              ) {
+                return Response.json(
+                  {
+                    success:
+                      false,
+
+                    error:
+                      "Photo must be under 10 MB.",
+                  },
+                  {
+                    status:
+                      400,
+                  },
+                );
+              }
+
+              contentType =
+                normaliseContentType(
+                  person.type,
+                );
+
+              bytes =
+                await person.arrayBuffer();
+
+              fileName =
+                person.name ||
+                (contentType ===
+                "image/png"
+                  ? "standing-photo.png"
+                  : "standing-photo.jpg");
+            }
+
+            /*
+             * ====================================================
+             * OPTION 2:
+             * Existing finalized YouCam VTO URL
+             * ====================================================
+             */
+
+            else if (
+              personUrl
+            ) {
+              console.log(
+                "YouCam BG: downloading finalized VTO image...",
+              );
+
+              const downloaded =
+                await downloadImageFromUrl(
+                  personUrl,
+                );
+
+              bytes =
+                downloaded.bytes;
+
+              contentType =
+                downloaded.contentType;
+
+              fileName =
+                downloaded.fileName;
+            }
+
+            /*
+             * ====================================================
+             * NOTHING RECEIVED
+             * ====================================================
+             */
+
+            else {
               return Response.json(
                 {
+                  success:
+                    false,
+
                   error:
-                    "Photo must be under 10 MB.",
+                    "No person image was received.",
                 },
                 {
                   status: 400,
@@ -378,17 +670,19 @@ export const Route =
             }
 
             console.log(
-              "YouCam: uploading photo for background removal...",
+              "YouCam BG: uploading person image...",
             );
 
             const fileId =
               await uploadPhoto(
-                person,
+                bytes,
+                contentType,
+                fileName,
                 apiKey,
               );
 
             console.log(
-              "YouCam: removing background...",
+              "YouCam BG: starting background removal...",
             );
 
             const taskId =
@@ -404,11 +698,12 @@ export const Route =
               );
 
             console.log(
-              "YouCam: background removed.",
+              "YouCam BG: transparent cutout ready.",
             );
 
             return Response.json({
               success: true,
+              taskId,
               url,
             });
           } catch (error) {
@@ -419,7 +714,8 @@ export const Route =
 
             return Response.json(
               {
-                success: false,
+                success:
+                  false,
 
                 error:
                   error instanceof

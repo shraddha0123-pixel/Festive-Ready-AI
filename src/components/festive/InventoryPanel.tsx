@@ -52,10 +52,7 @@ type ProductFilterMeta = {
   colors: string[];
 };
 
-const productFilterMeta: Record<
-  string,
-  ProductFilterMeta
-> = {
+const productFilterMeta: Record<string, ProductFilterMeta> = {
   /*
    * WOMEN
    */
@@ -66,7 +63,6 @@ const productFilterMeta: Record<
       "Elegant Festive",
       "Designer",
     ],
-
     colors: [
       "Gold",
       "Gold & Green",
@@ -80,7 +76,6 @@ const productFilterMeta: Record<
       "Royal Traditional",
       "Designer",
     ],
-
     colors: [
       "Yellow",
     ],
@@ -91,7 +86,6 @@ const productFilterMeta: Record<
       "Royal Traditional",
       "Designer",
     ],
-
     colors: [
       "Blush Pink",
       "Beige",
@@ -104,7 +98,6 @@ const productFilterMeta: Record<
       "Elegant Festive",
       "Designer",
     ],
-
     colors: [
       "Pink",
     ],
@@ -114,7 +107,6 @@ const productFilterMeta: Record<
     styles: [
       "Royal Traditional",
     ],
-
     colors: [
       "Pink",
       "Gold",
@@ -125,7 +117,6 @@ const productFilterMeta: Record<
     styles: [
       "Royal Traditional",
     ],
-
     colors: [],
   },
 
@@ -137,7 +128,6 @@ const productFilterMeta: Record<
     styles: [
       "Royal Traditional",
     ],
-
     colors: [],
   },
 
@@ -147,7 +137,6 @@ const productFilterMeta: Record<
       "Designer",
       "Fusion",
     ],
-
     colors: [],
   },
 
@@ -157,7 +146,6 @@ const productFilterMeta: Record<
       "Designer",
       "Fusion",
     ],
-
     colors: [],
   },
 
@@ -170,7 +158,6 @@ const productFilterMeta: Record<
       "Cute Traditional",
       "Royal Traditional",
     ],
-
     colors: [
       "Red",
       "Gold",
@@ -187,7 +174,6 @@ const productFilterMeta: Record<
       "Royal Traditional",
       "Elegant Festive",
     ],
-
     colors: [
       "Gold",
       "Classic Gold",
@@ -200,7 +186,6 @@ const productFilterMeta: Record<
       "Minimal Elegant",
       "Elegant Festive",
     ],
-
     colors: [
       "Pastel",
       "Gold",
@@ -212,7 +197,6 @@ const productFilterMeta: Record<
       "Royal Traditional",
       "Elegant Festive",
     ],
-
     colors: [
       "Gold",
       "Classic Gold",
@@ -224,18 +208,15 @@ const productFilterMeta: Record<
  * PRICE
  */
 
-function getNumericPrice(
-  price: string,
-) {
+function getNumericPrice(price: string) {
   if (!price.includes("₹")) {
     return null;
   }
 
-  const numeric =
-    price.replace(
-      /[^0-9]/g,
-      "",
-    );
+  const numeric = price.replace(
+    /[^0-9]/g,
+    "",
+  );
 
   if (!numeric) {
     return null;
@@ -260,10 +241,7 @@ function readTryOnCache(): Record<
   string,
   CachedTryOnResult
 > {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+  if (typeof window === "undefined") {
     return {};
   }
 
@@ -286,32 +264,23 @@ function readTryOnCache(): Record<
 function getCachedTryOn(
   cacheKey: string,
 ) {
-  const cache =
-    readTryOnCache();
+  const cache = readTryOnCache();
 
-  return (
-    cache[cacheKey] ??
-    null
-  );
+  return cache[cacheKey] ?? null;
 }
 
 function saveCachedTryOn(
   cacheKey: string,
   result: CachedTryOnResult,
 ) {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+  if (typeof window === "undefined") {
     return;
   }
 
   try {
-    const cache =
-      readTryOnCache();
+    const cache = readTryOnCache();
 
-    cache[cacheKey] =
-      result;
+    cache[cacheKey] = result;
 
     window.sessionStorage.setItem(
       TRY_ON_CACHE_KEY,
@@ -330,39 +299,26 @@ function saveCachedTryOn(
  */
 
 export function InventoryPanel() {
-  const [
-    active,
-    setActive,
-  ] =
-    useState<Category>(
-      "Outfits",
-    );
+  const [active, setActive] =
+    useState<Category>("Outfits");
 
   const [
     tryingOnItemId,
     setTryingOnItemId,
-  ] = useState<
-    string | null
-  >(null);
+  ] = useState<string | null>(null);
 
   const [
     tryOnError,
     setTryOnError,
-  ] = useState<
-    string | null
-  >(null);
+  ] = useState<string | null>(null);
 
   const {
     activeMember,
-
+    selectedFestival,
     updatePreference,
-
     standingPhoto,
-
     setTryOnResult,
-
     equipItem,
-
     isItemEquipped,
   } = useFestive();
 
@@ -374,12 +330,10 @@ export function InventoryPanel() {
     active === "Outfits"
       ? activeMember.preference
           ?.outfitBudget
-      : active ===
-          "Jewellery"
+      : active === "Jewellery"
         ? activeMember.preference
             ?.jewelleryBudget
-        : active ===
-            "Shoes"
+        : active === "Shoes"
           ? activeMember.preference
               ?.shoesBudget
           : activeMember.preference
@@ -390,8 +344,7 @@ export function InventoryPanel() {
    */
 
   const currentStyle =
-    activeMember.preference
-      ?.style &&
+    activeMember.preference?.style &&
     styles.includes(
       activeMember.preference.style,
     )
@@ -403,8 +356,7 @@ export function InventoryPanel() {
    */
 
   const currentColor =
-    activeMember.preference
-      ?.color &&
+    activeMember.preference?.color &&
     colors.includes(
       activeMember.preference.color,
     )
@@ -412,189 +364,153 @@ export function InventoryPanel() {
       : "All Colours";
 
   /*
-   * ============================================================
    * EXACT MEMBER COLLECTION CHECK
-   * ============================================================
-   *
-   * Example:
-   *
-   * Kid female now HAS a kid female product,
-   * so she gets the kids catalogue.
-   *
-   * Kid male currently has no specific kid-male
-   * product, so he temporarily falls back to
-   * male products instead of showing nothing.
-   *
-   * Same fallback applies to teens until we
-   * add teen-specific products.
    */
 
   const hasExactMemberOutfits =
-    items.some(
-      (item) => {
-        if (
-          item.category !==
-          "Outfits"
-        ) {
-          return false;
-        }
+    items.some((item) => {
+      if (
+        item.category !== "Outfits"
+      ) {
+        return false;
+      }
 
-        if (
-          item.ageGroup !==
-          activeMember.ageGroup
-        ) {
-          return false;
-        }
+      if (
+        item.ageGroup !==
+        activeMember.ageGroup
+      ) {
+        return false;
+      }
 
-        const memberGender =
-          activeMember.genderFit;
+      const memberGender =
+        activeMember.genderFit;
 
-        if (
-          memberGender !==
-            "female" &&
-          memberGender !==
-            "male"
-        ) {
-          return true;
-        }
+      if (
+        memberGender !== "female" &&
+        memberGender !== "male"
+      ) {
+        return true;
+      }
 
-        return (
-          !item.genderFit ||
-          item.genderFit ===
-            "unisex" ||
-          item.genderFit ===
-            memberGender
-        );
-      },
-    );
+      return (
+        !item.genderFit ||
+        item.genderFit === "unisex" ||
+        item.genderFit ===
+          memberGender
+      );
+    });
 
   /*
    * FILTER PRODUCTS
    */
 
   const visible =
-    items.filter(
-      (item) => {
+    items.filter((item) => {
+      /*
+       * CATEGORY
+       */
+
+      if (
+        item.category !== active
+      ) {
+        return false;
+      }
+
+      /*
+       * MEMBER FILTER
+       */
+
+      if (
+        active === "Outfits"
+      ) {
+        const memberGender =
+          activeMember.genderFit;
+
         /*
-         * CATEGORY
+         * GENDER
          */
 
         if (
-          item.category !==
-          active
+          (memberGender === "female" ||
+            memberGender === "male") &&
+          item.genderFit &&
+          item.genderFit !== "unisex" &&
+          item.genderFit !==
+            memberGender
         ) {
           return false;
         }
 
         /*
-         * MEMBER FILTER
+         * AGE
          */
 
         if (
-          active === "Outfits"
-        ) {
-          const memberGender =
-            activeMember.genderFit;
-
-          /*
-           * GENDER
-           */
-
-          if (
-            (memberGender ===
-              "female" ||
-              memberGender ===
-                "male") &&
-            item.genderFit &&
-            item.genderFit !==
-              "unisex" &&
-            item.genderFit !==
-              memberGender
-          ) {
-            return false;
-          }
-
-          /*
-           * AGE
-           *
-           * Age becomes strict only if
-           * this exact member type has
-           * its own products available.
-           */
-
-          if (
-            hasExactMemberOutfits &&
-            item.ageGroup &&
-            item.ageGroup !==
-              activeMember.ageGroup
-          ) {
-            return false;
-          }
-        }
-
-        /*
-         * BUDGET
-         */
-
-        const itemPrice =
-          getNumericPrice(
-            item.price,
-          );
-
-        if (
-          itemPrice !== null &&
-          currentBudget &&
-          itemPrice >
-            currentBudget
+          hasExactMemberOutfits &&
+          item.ageGroup &&
+          item.ageGroup !==
+            activeMember.ageGroup
         ) {
           return false;
         }
+      }
 
-        const meta =
-          productFilterMeta[
-            item.id
-          ];
+      /*
+       * BUDGET
+       */
 
-        /*
-         * STYLE
-         */
+      const itemPrice =
+        getNumericPrice(
+          item.price,
+        );
 
-        if (
-          currentStyle !==
-            "All Styles" &&
-          meta &&
-          meta.styles.length >
-            0 &&
-          !meta.styles.includes(
-            currentStyle,
-          )
-        ) {
-          return false;
-        }
+      if (
+        itemPrice !== null &&
+        currentBudget &&
+        itemPrice > currentBudget
+      ) {
+        return false;
+      }
 
-        /*
-         * COLOUR
-         *
-         * Unknown product colours
-         * remain visible.
-         */
+      const meta =
+        productFilterMeta[
+          item.id
+        ];
 
-        if (
-          currentColor !==
-            "All Colours" &&
-          meta &&
-          meta.colors.length >
-            0 &&
-          !meta.colors.includes(
-            currentColor,
-          )
-        ) {
-          return false;
-        }
+      /*
+       * STYLE
+       */
 
-        return true;
-      },
-    );
+      if (
+        currentStyle !==
+          "All Styles" &&
+        meta &&
+        meta.styles.length > 0 &&
+        !meta.styles.includes(
+          currentStyle,
+        )
+      ) {
+        return false;
+      }
+
+      /*
+       * COLOUR
+       */
+
+      if (
+        currentColor !==
+          "All Colours" &&
+        meta &&
+        meta.colors.length > 0 &&
+        !meta.colors.includes(
+          currentColor,
+        )
+      ) {
+        return false;
+      }
+
+      return true;
+    });
 
   /*
    * BUDGET CHANGE
@@ -647,17 +563,13 @@ export function InventoryPanel() {
   ) {
     equipItem({
       id: item.id,
-
       name: item.name,
-
       slot: item.slot,
-
       image: item.image,
-
       price: item.price,
 
       productUrl:
-        item.productUrl,
+        item.productUrl ?? "",
 
       category:
         item.category,
@@ -774,9 +686,7 @@ export function InventoryPanel() {
       const outfitFile =
         new File(
           [outfitBlob],
-
           `try-on-${item.id}.${extension}`,
-
           {
             type:
               outfitBlob.type ||
@@ -828,7 +738,6 @@ export function InventoryPanel() {
           "/api/youcam-tryon",
           {
             method: "POST",
-
             body: formData,
           },
         );
@@ -867,7 +776,6 @@ export function InventoryPanel() {
 
       const result = {
         url: payload.url,
-
         itemName:
           item.name,
       };
@@ -921,7 +829,7 @@ export function InventoryPanel() {
 
       <div>
         <h2 className="font-display text-sm tracking-[0.22em] text-gold uppercase">
-          Diwali Collection
+          {selectedFestival.name} Collection
         </h2>
 
         <div className="gold-rule mt-2" />
@@ -942,7 +850,6 @@ export function InventoryPanel() {
           (category) => (
             <button
               key={category}
-
               type="button"
 
               onClick={() => {
@@ -956,8 +863,7 @@ export function InventoryPanel() {
               }}
 
               className={`rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase transition-all ${
-                active ===
-                category
+                active === category
                   ? "border-gold/70 bg-secondary/70 text-gold"
                   : "border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
               }`}
@@ -975,7 +881,6 @@ export function InventoryPanel() {
         {/* BUDGET */}
 
         <div className="flex flex-col gap-1">
-
           <span className="text-[10px] font-medium text-gold">
             💰 ₹
             {currentBudget
@@ -989,11 +894,8 @@ export function InventoryPanel() {
 
           <input
             type="range"
-
             min="1000"
-
             max="100000"
-
             step="1000"
 
             value={
@@ -1029,7 +931,6 @@ export function InventoryPanel() {
 
             updatePreference({
               ...activeMember.preference,
-
               style:
                 event.target.value,
             });
@@ -1041,7 +942,6 @@ export function InventoryPanel() {
             (style) => (
               <option
                 key={style}
-
                 value={style}
               >
                 {style}
@@ -1066,7 +966,6 @@ export function InventoryPanel() {
 
             updatePreference({
               ...activeMember.preference,
-
               color:
                 event.target.value,
             });
@@ -1078,7 +977,6 @@ export function InventoryPanel() {
             (color) => (
               <option
                 key={color}
-
                 value={color}
               >
                 {color}
@@ -1160,7 +1058,6 @@ export function InventoryPanel() {
                 {/* PRODUCT */}
 
                 <div className="flex gap-3">
-
                   <img
                     src={
                       item.image
@@ -1171,16 +1068,13 @@ export function InventoryPanel() {
                     }
 
                     loading="lazy"
-
                     width={512}
-
                     height={512}
 
                     className="size-16 shrink-0 rounded-md border border-gold/40 object-cover"
                   />
 
                   <div className="min-w-0 flex-1">
-
                     <p className="truncate text-sm text-foreground">
                       {item.name}
                     </p>
@@ -1192,7 +1086,6 @@ export function InventoryPanel() {
                     <p className="mt-1 font-display text-sm text-gold">
                       {item.price}
                     </p>
-
                   </div>
                 </div>
 
@@ -1228,13 +1121,11 @@ export function InventoryPanel() {
                     {generating ? (
                       <>
                         <LoaderCircle className="size-3.5 animate-spin" />
-
                         Generating
                       </>
                     ) : (
                       <>
                         <Sparkles className="size-3.5" />
-
                         Try On
                       </>
                     )}
@@ -1291,7 +1182,6 @@ export function InventoryPanel() {
                     className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-gold/30 bg-background/30 px-3 py-2 text-[10px] tracking-[0.12em] text-gold uppercase transition-all hover:border-gold hover:bg-secondary/40"
                   >
                     View Product
-
                     <ExternalLink className="size-3" />
                   </a>
                 )}
@@ -1302,10 +1192,8 @@ export function InventoryPanel() {
 
         {/* EMPTY */}
 
-        {visible.length ===
-          0 && (
+        {visible.length === 0 && (
           <li className="rounded-lg border border-dashed border-gold/25 px-3 py-8 text-center">
-
             <p className="text-xs text-gold">
               No matching items
             </p>
@@ -1313,7 +1201,6 @@ export function InventoryPanel() {
             <p className="mt-1 text-[10px] text-muted-foreground">
               Increase your budget or try another style / colour.
             </p>
-
           </li>
         )}
       </ul>

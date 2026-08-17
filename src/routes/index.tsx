@@ -8,6 +8,7 @@ import { CharacterStage } from "@/components/festive/CharacterStage";
 import { InventoryPanel } from "@/components/festive/InventoryPanel";
 import { FestiveControlBar } from "@/components/festive/FestiveControlBar";
 import { FestiveProvider } from "@/components/festive/FestiveContext";
+import { FestiveTutorial } from "@/components/festive/FestiveTutorial";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -116,6 +117,10 @@ function Index() {
         </div>
 
       </main>
+
+      {/* PROFESSIONAL SPOTLIGHT TUTORIAL */}
+
+      <FestiveTutorial />
 
     </FestiveProvider>
   );
